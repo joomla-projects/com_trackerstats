@@ -6,17 +6,17 @@ CREATE TABLE IF NOT EXISTS `#__code_activity_detail` (
   `activity_date` datetime DEFAULT NULL,
   PRIMARY KEY (`activity_type`,`activity_xref_id`),
   KEY `idx_activity_date` (`activity_date`),
-  KEY `idx_user_id` (`user_id`),
+  KEY `idx_user_id` (`jc_user_id`),
   KEY `idx_jc_issue_id` (`jc_issue_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_activity_types` (
-  `activity_type` tinyint(4) default NULL COMMENT '1-create; 2-comment; 3-change; 4-test; 5-patch; 6-pull in comment; 7-pull in description',
-  `activity_title` varchar(255) default NULL COMMENT 'Title for each type',
-  `activity_group` varchar(255) default NULL COMMENT 'Tracker, Test, Code',
-  `activity_description` varchar(500) default NULL COMMENT 'Activity description',
-  `activity_points` tinyint(4) default NULL COMMENT 'Weighting for each type of activity',
-  PRIMARY KEY  (`activity_type`)
+  `activity_type` tinyint(4) NOT NULL DEFAULT '0' COMMENT '1-create; 2-comment; 3-change; 4-test; 5-patch; 6-pull in comment; 7-pull in description',
+  `activity_title` varchar(255) DEFAULT NULL,
+  `activity_group` varchar(255) DEFAULT NULL,
+  `activity_description` varchar(500) DEFAULT NULL,
+  `activity_points` tinyint(4) DEFAULT NULL COMMENT 'Weighting for each type of activity',
+  PRIMARY KEY (`activity_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `#__code_activity_types`
@@ -30,24 +30,25 @@ INSERT INTO `#__code_activity_types`
 (7, 'Pull Request in Description', 'Code', 'Add a pull request link in the original issue description.', 5);
 
 CREATE TABLE IF NOT EXISTS `#__code_branches` (
-  `branch_id` int(10) unsigned NOT NULL auto_increment,
+  `branch_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `project_id` int(10) unsigned NOT NULL,
   `asset_id` int(11) NOT NULL,
-  `user_id` int(10) unsigned default NULL,
-  `path` varchar(128) default NULL,
-  `title` varchar(255) default NULL,
+  `user_id` int(10) unsigned DEFAULT NULL,
+  `path` varchar(128) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
   `summary` varchar(512) NOT NULL,
   `description` text,
   `access` int(11) NOT NULL,
-  `published` tinyint(4) default NULL,
-  `updated_date` datetime default NULL,
-  `created_date` datetime default NULL,
+  `published` tinyint(4) DEFAULT NULL,
+  `updated_date` datetime DEFAULT NULL,
+  `created_date` datetime DEFAULT NULL,
   `last_build_id` int(10) unsigned NOT NULL,
-  PRIMARY KEY  (`branch_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`branch_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_builds` (
   `build_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `project_id` int(10) unsigned NOT NULL DEFAULT '1',
   `revision_id` int(10) unsigned DEFAULT NULL,
   `branch_id` int(10) unsigned DEFAULT NULL,
   `user_id` int(11) DEFAULT NULL,
@@ -82,7 +83,7 @@ CREATE TABLE IF NOT EXISTS `#__code_builds` (
   `methods_covered_pct` float DEFAULT NULL,
   PRIMARY KEY (`build_id`),
   KEY `idx_branch_revision` (`branch_id`,`revision_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_nightly_builds` (
   `build_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -117,10 +118,10 @@ CREATE TABLE IF NOT EXISTS `#__code_nightly_builds` (
   `methods_covered_pct` float DEFAULT NULL,
   PRIMARY KEY (`build_id`),
   KEY `idx_branch_revision` (`branch_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_projects` (
-  `project_id` int(10) unsigned NOT NULL auto_increment,
+  `project_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `asset_id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
   `alias` varchar(255) NOT NULL,
@@ -132,20 +133,18 @@ CREATE TABLE IF NOT EXISTS `#__code_projects` (
   `created_by` int(11) NOT NULL,
   `modified_date` datetime NOT NULL,
   `modified_by` int(11) NOT NULL,
-  `jc_project_id` int(11) default NULL,
-  PRIMARY KEY  (`project_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `jc_project_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`project_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_tags` (
   `tag_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `tag` varchar(512) DEFAULT NULL,
-  `total` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`tag_id`),
-  KEY `idx_code_tags_total` (`total`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`tag_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_trackers` (
-  `tracker_id` int(10) unsigned NOT NULL auto_increment,
+  `tracker_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `project_id` int(10) unsigned NOT NULL,
   `asset_id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
@@ -162,10 +161,10 @@ CREATE TABLE IF NOT EXISTS `#__code_trackers` (
   `created_by` int(11) NOT NULL,
   `modified_date` datetime NOT NULL,
   `modified_by` int(11) NOT NULL,
-  `jc_tracker_id` int(11) default NULL,
-  `jc_project_id` int(11) default NULL,
-  PRIMARY KEY  (`tracker_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  `jc_tracker_id` int(11) DEFAULT NULL,
+  `jc_project_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`tracker_id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_tracker_issues` (
   `issue_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -173,6 +172,8 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_issues` (
   `project_id` int(10) unsigned NOT NULL,
   `build_id` int(10) unsigned DEFAULT NULL,
   `state` int(11) NOT NULL,
+  `status` int(10) unsigned NOT NULL,
+  `status_name` varchar(255) NOT NULL,
   `priority` int(11) NOT NULL,
   `created_date` datetime NOT NULL,
   `created_by` int(11) NOT NULL,
@@ -191,7 +192,7 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_issues` (
   `jc_close_by` int(11) DEFAULT NULL,
   PRIMARY KEY (`issue_id`),
   UNIQUE KEY `idx_tracker_issues_legacy` (`jc_issue_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_assignments` (
   `issue_id` int(10) unsigned NOT NULL,
@@ -215,7 +216,7 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_changes` (
   `jc_change_by` int(11) DEFAULT NULL,
   PRIMARY KEY (`change_id`),
   UNIQUE KEY `jc_change_id` (`jc_change_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_commits` (
   `commit_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -230,7 +231,7 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_commits` (
   `jc_created_by` int(11) DEFAULT NULL,
   PRIMARY KEY (`commit_id`),
   UNIQUE KEY `jc_commit_id` (`jc_commit_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_files` (
   `file_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -248,7 +249,7 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_files` (
   `jc_created_by` int(11) DEFAULT NULL,
   PRIMARY KEY (`file_id`),
   UNIQUE KEY `idx_issue_files_legacy` (`jc_file_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_responses` (
   `response_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -263,6 +264,13 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_responses` (
   `jc_created_by` int(11) DEFAULT NULL,
   PRIMARY KEY (`response_id`),
   UNIQUE KEY `idx_tracker_responses_legacy` (`jc_response_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_tag_map` (
+  `issue_id` int(10) unsigned DEFAULT NULL,
+  `tag_id` int(10) unsigned DEFAULT NULL,
+  `tag` varchar(255) DEFAULT NULL,
+  KEY `issue_id` (`issue_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `#__code_tracker_snapshots` (
@@ -273,15 +281,8 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_snapshots` (
   PRIMARY KEY (`tracker_id`,`snapshot_day`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `#__code_tracker_issue_tag_map` (
-  `issue_id` int(10) unsigned DEFAULT NULL,
-  `tag_id` int(10) unsigned DEFAULT NULL,
-  `tag` varchar(255) DEFAULT NULL,
-  KEY `issue_id` (`issue_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 CREATE TABLE IF NOT EXISTS `#__code_users` (
-  `user_id` int(11) NOT NULL auto_increment,
+  `user_id` int(11) NOT NULL AUTO_INCREMENT,
   `first_name` varchar(255) NOT NULL,
   `last_name` varchar(255) NOT NULL,
   `address` varchar(512) NOT NULL,
@@ -296,5 +297,7 @@ CREATE TABLE IF NOT EXISTS `#__code_users` (
   `agreed_tos` int(1) unsigned NOT NULL,
   `jca_document_id` varchar(255) NOT NULL,
   `signed_jca` int(1) unsigned NOT NULL,
-  `jc_user_id` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `jc_user_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`user_id`),
+  UNIQUE KEY `idx_legacy_user_id` (`jc_user_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
