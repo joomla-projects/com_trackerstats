@@ -10,7 +10,7 @@
 defined('_JEXEC') or die;
 
 // Include the helper functions only once
-require_once dirname(__FILE__).'/helper.php';
+require_once dirname(__FILE__) . '/helper.php';
 $moduleclass_sfx = htmlspecialchars($params->get('moduleclass_sfx'));
 $names = modTrackerstatsUsersHelper::getList($params);
 require JModuleHelper::getLayoutPath('mod_trackerstats_users', $params->get('layout', 'default'));
