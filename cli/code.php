@@ -34,16 +34,17 @@ require_once JPATH_CONFIGURATION . '/configuration.php';
 
 // System configuration.
 $config = new JConfig;
+$error_reporting = (int) $config->error_reporting;
 
 // Configure error reporting
-if ($config->get('error_reporting') == 0)
+if ($error_reporting == 0)
 {
 	error_reporting(0);
 }
-elseif ($config->get('error_reporting') > 0)
+elseif ($error_reporting > 0)
 {
 	// Verbose error reporting.
-	error_reporting($config->get('error_reporting'));
+	error_reporting($error_reporting);
 }
 
 ini_set('display_errors', 1);
