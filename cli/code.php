@@ -1,121 +1,103 @@
 #! /usr/local/bin/php -c /usr/local/lib/php-no-xcache -v
 <?php
-define( '_JEXEC', 1 );
-define('JPATH_BASE', dirname(__DIR__) . '/public_html');
-//define('JPATH_BASE', '/Users/louis/Sites/joomla/developer');
-define( 'DS', DIRECTORY_SEPARATOR );
+/**
+ * Bootstrap for the cron job which synchronizes the Joomlacode data
+ */
 
-// Joomla framework path definitions
-define('JPATH_ROOT',                    JPATH_BASE);
-define('JPATH_SITE',                    JPATH_ROOT);
-define('JPATH_CONFIGURATION',   		JPATH_ROOT);
-define('JPATH_THEMES',                  JPATH_ROOT.DS.'templates');
-define('JPATH_LIBRARIES',               JPATH_ROOT.DS.'libraries');
-define('JPATH_PLUGINS',                 JPATH_ROOT.DS.'plugins');
+// We are a valid entry point.
+const _JEXEC = 1;
 
-// Needed to deal with the JApplicationHelper::getClientInfo() hijack.
-define('JPATH_ADMINISTRATOR',   JPATH_ROOT.DS.'administrator');
-define('JPATH_INSTALLATION',    JPATH_ROOT.DS.'installation');
+// Load system defines
+if (file_exists(dirname(__DIR__) . '/defines.php'))
+{
+	require_once dirname(__DIR__) . '/defines.php';
+}
 
-// System Checks
-@set_magic_quotes_runtime(0);
+if (!defined('_JDEFINES'))
+{
+	define('JPATH_BASE', dirname(__DIR__));
+	require_once JPATH_BASE . '/includes/defines.php';
+}
+
+// Joomla system checks.
+@ini_set('magic_quotes_runtime', 0);
 @ini_set('zend.ze1_compatibility_mode', '0');
 
-// System includes
-require_once(JPATH_LIBRARIES.DS.'import.php');
+// Get the framework.
+require_once JPATH_LIBRARIES . '/import.legacy.php';
 
-// Joomla! library imports
-jimport('joomla.application.menu');
-jimport('joomla.user.user');
-jimport('joomla.environment.uri');
-jimport('joomla.html.html');
-jimport('joomla.utilities.utility');
-jimport('joomla.event.event');
-jimport('joomla.event.dispatcher');
-jimport('joomla.language.language');
-jimport('joomla.utilities.string');
-jimport('joomla.plugin.helper');
-jimport('joomla.utilities.date');
-jimport('joomla.log.log');
-jimport('legacy.error.error');
+// Bootstrap the CMS libraries.
+require_once JPATH_LIBRARIES . '/cms.php';
 
-// Load the configuration file
-require_once(JPATH_CONFIGURATION.DS.'configuration.php');
+// Import the configuration.
+require_once JPATH_CONFIGURATION . '/configuration.php';
 
-// Instantiate the configuration object and set the error reporting.
-$config = JFactory::getConfig();
-$config->loadObject(new JConfig);
-if ($config->get('error_reporting') == 0) {
-        error_reporting(0);
+// System configuration.
+$config = new JConfig;
+
+// Configure error reporting
+if ($config->get('error_reporting') == 0)
+{
+	error_reporting(0);
 }
-elseif ($config->get('error_reporting') > 0) {
-        // Verbose error reporting.
-        error_reporting($config->get('error_reporting'));
+elseif ($config->get('error_reporting') > 0)
+{
+	// Verbose error reporting.
+	error_reporting($config->get('error_reporting'));
 }
-        ini_set('display_errors', 1);
 
+ini_set('display_errors', 1);
 
 // Set error handling levels
-JError::setErrorHandling( E_ERROR, 'echo');
-JError::setErrorHandling( E_WARNING, 'echo' );
-JError::setErrorHandling( E_NOTICE, 'echo' );
+JError::setErrorHandling(E_ERROR, 'echo');
+JError::setErrorHandling(E_WARNING, 'echo');
+JError::setErrorHandling(E_NOTICE, 'echo');
 
-/*
- * Handle the arguments
+/**
+ * A command line cron job to synchronize the Joomlacode data.
  */
-$args = $_SERVER['argv'];
-
-// Remove the file
-array_shift($args);
-
-// Get the command
-$command = array_shift($args);
-switch (strtolower($command))
+class Code extends JApplicationCli
 {
-    case 'sync' :
+	/**
+	 * Method to run the application routines.
+	 *
+	 * @return  void
+	 */
+	protected function doExecute()
+	{
+		$args = $this->input->args;
 
-		// Get a tracker sync method object.
-        require ('methods/sync.php');
-        $method = new TrackerSyncMethod();
+		$command = strtolower(array_shift($args));
 
-		// Unused code to get the id of the tracker to sync.
-        $trackerId = null;
-        if (!empty($args[0]) and (strpos($args[0], '--tracker=') !== false)) {
-                $trackerId = array_shift($args);
-                $trackerId = intval(str_replace('--tracker=', '', $trackerId));
-        }
+		// Get the ID of the tracker to sync (unused)
+		$trackerId = $this->input->get('tracker', null);
 
-		// Run the method.
-        $method->run($trackerId);
-        break;
+		switch ($command)
+		{
+			case 'sync' :
+			case 'filefix' :
+				// Define the component path.
+				defined('JPATH_COMPONENT') or define('JPATH_COMPONENT', realpath(JPATH_BASE . '/components/com_code'));
 
-    case 'filefix' :
+				// Set the include paths for com_code models and tables.
+				JModelLegacy::addIncludePath(realpath(JPATH_BASE . '/components/com_code/models'));
+				JTable::addIncludePath(realpath(JPATH_BASE . '/administrator/components/com_code/tables'));
 
-		// Get a file fix method object.
-        require ('methods/filefix.php');
-        $method = new FileFixMethod();
+				// Get the tracker sync model.
+				$model = JModelLegacy::getInstance('TrackerSync', 'CodeModel');
 
-		// Unused code to get the id of the tracker to sync.
-        $trackerId = null;
-        if (!empty($args[0]) and (strpos($args[0], '--tracker=') !== false)) {
-                $trackerId = array_shift($args);
-                $trackerId = intval(str_replace('--tracker=', '', $trackerId));
-        }
+				// Run the syncronization routine.
+				$model->$command();
 
-		// Run the method.
-        $method->run($trackerId);
-        break;
+				break;
 
-    case 'help' :
-    default :
+			default :
+				$this->out('A valid command was not specified.');
 
-            $subcmd = 'main';
-            if (isset($args[0]) and in_array($args[0], $commands)) {
-                    $subcmd = array_shift($args);
-            }
-
-            include 'help/'.$subcmd.'.txt';
-            break;
+				break;
+		}
+	}
 }
 
-exit();
+// Instantiate the application object, passing the class name to JApplicationCli::getInstance and use chaining to execute the application.
+JApplicationCli::getInstance('Code')->execute();
