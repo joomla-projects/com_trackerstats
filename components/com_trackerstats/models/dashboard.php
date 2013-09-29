@@ -1,19 +1,20 @@
 <?php
 /**
- * @copyright	Copyright (C) 2011 Mark Dexter. All rights reserved.
- * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
+ *
+ * @copyright   Copyright (C) 2011 Mark Dexter. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
-// No direct access
 defined('_JEXEC') or die;
-
-jimport('joomla.application.component.modellist');
-jimport('joomla.application.categories');
 
 /**
  * Gets the data for the bug squad activity by person bar chart
  *
- * @package	com_trackerstats
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
+ * @since       2.5
  */
 class TrackerstatsModelDashboard extends JModelList
 {
@@ -32,17 +33,17 @@ class TrackerstatsModelDashboard extends JModelList
 	 */
 	protected function getListQuery()
 	{
-		$user = JFactory::getUser();
+		$user   = JFactory::getUser();
 		$groups = implode(',', $user->getAuthorisedViewLevels());
 
 		// Create a new query object.
-		$db		= $this->getDbo();
-		$query	= $db->getQuery(true);
-		$periodList = array(1 => '-7 DAY', 2 => '-30 Day', 3 => '-90 DAY', 4 => '-1 YEAR', 5=> 'Custom');
+		$db          = $this->getDbo();
+		$query       = $db->getQuery(true);
+		$periodList  = array(1 => '-7 DAY', 2 => '-30 Day', 3 => '-90 DAY', 4 => '-1 YEAR', 5 => 'Custom');
 		$periodValue = $periodList[$this->state->get('list.period')];
 
 		$typeList = array('All', 'Tracker', 'Test', 'Code');
-		$type = $typeList[$this->state->get('list.activity_type')];
+		$type     = $typeList[$this->state->get('list.activity_type')];
 
 		// Select required fields from the categories.
 		$query->select('CONCAT(u.first_name, " ", u.last_name) AS name');
@@ -89,18 +90,19 @@ class TrackerstatsModelDashboard extends JModelList
 	protected function populateState($ordering = null, $direction = null)
 	{
 		// Initialise variables.
-		$app	= JFactory::getApplication();
-		$jinput = $app->input;
-		$params	= JComponentHelper::getParams('com_trackerstats');
+		$jinput = JFactory::getApplication()->input;
+		$params = JComponentHelper::getParams('com_trackerstats');
 		$this->setState('list.limit', 25);
 		$this->setState('list.start', 0);
 		$this->setState('list.period', $jinput->getInt('period', 1));
 		$this->setState('list.activity_type', $jinput->getInt('activity_type', 0));
 		$enteredPeriod = $jinput->getInt('period', 1);
+
 		if ($enteredPeriod == 5)
 		{
 			$startDate = $jinput->getCmd('startdate');
-			$endDate = $jinput->getCmd('enddate');
+			$endDate   = $jinput->getCmd('enddate');
+
 			if ($this->datesValid($startDate, $endDate))
 			{
 				$this->setState('list.startdate', $startDate);
@@ -111,18 +113,17 @@ class TrackerstatsModelDashboard extends JModelList
 				$enteredPeriod = 1;
 			}
 		}
+
 		$this->setState('list.period', $enteredPeriod);
 	}
 
 	/**
 	 * Method to check that custom dates are valid
-	 *
 	 */
 	protected function datesValid($date1, $date2)
 	{
 		// check that they are dates and that $date1 <= $date2
-		if (($date1 == date('Y-m-d', strtotime($date1))) && ($date2 == date('Y-m-d', strtotime($date2)))
-				&& ($date1 <= $date2))
+		if (($date1 == date('Y-m-d', strtotime($date1))) && ($date2 == date('Y-m-d', strtotime($date2))) && ($date1 <= $date2))
 		{
 			return true;
 		}
@@ -130,7 +131,5 @@ class TrackerstatsModelDashboard extends JModelList
 		{
 			return false;
 		}
-
 	}
-
-} // end of class
+}

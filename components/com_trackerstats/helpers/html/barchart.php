@@ -1,10 +1,10 @@
 <?php
 /**
- * @package     Joomla.Libraries
- * @subpackage  HTML
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
  *
- * @copyright   Copyright (C) 2005 - 2013 Mark Dexter. All rights reserved.
- * @license     GNU General Public License version 2 or later; see LICENSE
+ * @copyright   Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 defined('JPATH_PLATFORM') or die;
@@ -12,8 +12,8 @@ defined('JPATH_PLATFORM') or die;
 /**
  * HTML utility class for creating bar charts using jQuery and jqplot JavaScript libraries.
  *
- * @package     com_trackerstats
- * @subpackage  HTML
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
  * @since       2.5
  */
 abstract class JHtmlBarchart
@@ -27,8 +27,8 @@ abstract class JHtmlBarchart
 	/**
 	 * Method to load the Barchart script to display a bar chart using jQuery and jqPlot
 	 *
-	 * @param   string   $containerID             DOM id of the element where the chart will be rendered
-	 * @param   string   $urlId                   DOM id of the element whose href attribute has the URL to the JSON data
+	 * @param   string  $containerID  DOM id of the element where the chart will be rendered
+	 * @param   string  $urlId        DOM id of the element whose href attribute has the URL to the JSON data
 	 *
 	 * @return  void
 	 *
@@ -37,7 +37,7 @@ abstract class JHtmlBarchart
 	public static function barchart($containerId, $urlId, $horizontal = true, $stackSeries = true, $barMargin = 10)
 	{
 		// Only load once
-		if (isset(self::$loaded[__METHOD__]))
+		if (isset(static::$loaded[__METHOD__]))
 		{
 			return;
 		}
@@ -54,8 +54,8 @@ abstract class JHtmlBarchart
 		$document->addScript('components/com_trackerstats/media/js/barchart.js', 'text/javascript', true);
 		$document->addScript('components/com_trackerstats/media/js/jquery-ui-1.10.2.custom.min.js', 'text/javascript', true);
 		$document->addScript('components/com_trackerstats/media/js/jqplot.highlighter.min.js', 'text/javascript', true);
-		$document->addStyleSheet( JURI::root( true ).'/components/com_trackerstats/media/css/jquery.jqplot.min.css' );
-		$document->addStyleSheet( JURI::root( true ).'/components/com_trackerstats/media/css/jquery-ui-1.10.2.custom.min.css' );
+		$document->addStyleSheet(JUri::root(true) . '/components/com_trackerstats/media/css/jquery.jqplot.min.css');
+		$document->addStyleSheet(JUri::root(true) . '/components/com_trackerstats/media/css/jquery-ui-1.10.2.custom.min.css');
 
 		// Attach sortable to document
 		JFactory::getDocument()->addScriptDeclaration("
@@ -111,15 +111,17 @@ abstract class JHtmlBarchart
 		})(jQuery);
 		"
 		);
+
 		// Set static array
-		self::$loaded[__METHOD__] = true;
+		static::$loaded[__METHOD__] = true;
+
 		return;
 	}
 
 	public static function barchartTest($containerId, $urlId, $horizontal = true)
 	{
 		// Only load once
-		if (isset(self::$loaded[__METHOD__]))
+		if (isset(static::$loaded[__METHOD__]))
 		{
 			return;
 		}
@@ -135,7 +137,7 @@ abstract class JHtmlBarchart
 		$document->addScript('components/com_trackerstats/media/js/jqplot.categoryAxisRenderer.min.js', 'text/javascript', true);
 		$document->addScript('components/com_trackerstats/media/js/jqplot.pointLabels.min.js', 'text/javascript', true);
 		$document->addScript('components/com_trackerstats/media/js/barchartTest.js', 'text/javascript', true);
-		$document->addStyleSheet( JURI::root( true ).'/components/com_trackerstats/media/css/jquery.jqplot.min.css' );
+		$document->addStyleSheet(JUri::root(true) . '/components/com_trackerstats/media/css/jquery.jqplot.min.css');
 
 		// Attach sortable to document
 		JFactory::getDocument()->addScriptDeclaration("
@@ -163,8 +165,9 @@ abstract class JHtmlBarchart
 	})(jQuery);
 				"
 		);
+
 		// Set static array
-		self::$loaded[__METHOD__] = true;
+		static::$loaded[__METHOD__] = true;
 		return;
 	}
 }

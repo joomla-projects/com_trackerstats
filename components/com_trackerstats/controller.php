@@ -1,9 +1,10 @@
 <?php
 /**
- * @package		Joomla.Site
- * @subpackage	com_contact
- * @copyright	Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
- * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
+ *
+ * @copyright   Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 defined('_JEXEC') or die;
@@ -11,19 +12,23 @@ defined('_JEXEC') or die;
 /**
  * Trackerstats Component Controller
  *
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
+ * @since       2.5
  */
 class TrackerstatsController extends JControllerLegacy
 {
 	/**
 	 * Method to display a view.
 	 *
-	 * @param	boolean			If true, the view output will be cached
-	 * @param	array			An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
+	 * @param	boolean  $cachable   If true, the view output will be cached
+	 * @param	array    $urlparams  An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
 	 *
-	 * @return	JController		This object to support chaining.
+	 * @return	JController  This object to support chaining.
+	 *
 	 * @since	1.5
 	 */
-	public function display($cachable = false, $urlparams = false)
+	public function display($cachable = false, $urlparams = array())
 	{
 		$cachable = false;
 
@@ -31,13 +36,15 @@ class TrackerstatsController extends JControllerLegacy
 		$document = JFactory::getDocument();
 
 		// Set the default view name and format from the Request.
-		$vName		= JRequest::getCmd('view', 'dashboard');
-		JRequest::setVar('view', $vName);
-		$user = JFactory::getUser();
-		$safeurlparams = array('catid'=>'INT', 'id'=>'INT', 'cid'=>'ARRAY', 'year'=>'INT', 'month'=>'INT', 'limit'=>'UINT', 'limitstart'=>'UINT',
-			'showall'=>'INT', 'return'=>'BASE64', 'filter'=>'STRING', 'filter_order'=>'CMD', 'filter_order_Dir'=>'CMD', 'filter-search'=>'STRING', 'print'=>'BOOLEAN', 'lang'=>'CMD');
+		$vName = $this->input->getCmd('view', 'dashboard');
+		$this->input->set('view', $vName);
 
-		parent::display($cachable, $safeurlparams);
-		return $this;
+		$safeurlparams = array(
+			'catid' => 'INT', 'id' => 'INT', 'cid' => 'ARRAY', 'year' => 'INT', 'month' => 'INT', 'limit' => 'UINT', 'limitstart' => 'UINT',
+			'showall' => 'INT', 'return' => 'BASE64', 'filter' => 'STRING', 'filter_order' => 'CMD', 'filter_order_Dir' => 'CMD',
+			'filter-search' => 'STRING', 'print' => 'BOOLEAN', 'lang' => 'CMD'
+		);
+
+		return parent::display($cachable, $safeurlparams);
 	}
 }

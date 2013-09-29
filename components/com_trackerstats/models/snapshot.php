@@ -1,19 +1,20 @@
 <?php
 /**
- * @copyright	Copyright (C) 2011 Mark Dexter. All rights reserved.
- * @license		GNU General Public License version 2 or later; see LICENSE.txt
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
+ *
+ * @copyright   Copyright (C) 2011 Mark Dexter. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
-// No direct access
 defined('_JEXEC') or die;
-
-jimport('joomla.application.component.modellist');
-jimport('joomla.application.categories');
 
 /**
  * Gets the data for the total open issues by time period bar chart.
  *
- * @package		com_trackerstats
+ * @package     Joomla.BugSquad
+ * @subpackage  com_trackerstats
+ * @since       2.5
  */
 class TrackerstatsModelSnapshot extends JModelList
 {
@@ -32,18 +33,19 @@ class TrackerstatsModelSnapshot extends JModelList
 	 */
 	protected function getListQuery()
 	{
-		$periodList = array(1 => 1, 2 => 7, 3 => 30);
+		$periodList  = array(1 => 1, 2 => 7, 3 => 30);
 		$periodNames = array(1 => 'Days', 2 => 'Weeks', 3 => 'Months');
-		$periodName = $periodNames[$this->state->get('list.period')];
+		$periodName  = $periodNames[$this->state->get('list.period')];
 		$periodValue = $periodList[$this->state->get('list.period')];
 
 		// Get starting date from the database -- latest date available. Should usually be today.
 		$today = $this->getLatestDate();
 
 		// Calculate the prior three dates
-		$priorDates = array();
-		$db	= $this->getDbo();
+		$priorDates   = array();
+		$db           = $this->getDbo();
 		$priorDates[] = $db->quote($today);
+
 		for ($i = 1; $i < 4; $i++)
 		{
 			$workDate = new DateTime($today);
@@ -52,10 +54,8 @@ class TrackerstatsModelSnapshot extends JModelList
 		}
 
 		$query = $db->getQuery(true);
-		$query->select('*')
-			->from('#__code_tracker_snapshots')
-			->where('tracker_id = 3')
-			->where('snapshot_day IN (' . implode(',', $priorDates) . ')');
+		$query->select('*')->from('#__code_tracker_snapshots')->where('tracker_id = 3')->where('snapshot_day IN (' . implode(',', $priorDates) . ')');
+
 		return $query;
 	}
 
@@ -69,8 +69,7 @@ class TrackerstatsModelSnapshot extends JModelList
 	protected function populateState($ordering = null, $direction = null)
 	{
 		// Initialise variables.
-		$app	= JFactory::getApplication();
-		$jinput = $app->input;
+		$jinput = JFactory::getApplication()->input;
 		$params	= JComponentHelper::getParams('com_trackerstats');
 		$this->setState('list.limit', 25);
 		$this->setState('list.start', 0);
@@ -80,7 +79,6 @@ class TrackerstatsModelSnapshot extends JModelList
 
 	/**
 	 * Method to get the most recent date available from the snapshot table
-	 *
 	 */
 	protected function getLatestDate()
 	{
@@ -90,7 +88,7 @@ class TrackerstatsModelSnapshot extends JModelList
 			->from('#__code_tracker_snapshots')
 			->where('tracker_id = 3');
 		$db->setQuery($query);
+
 		return $db->loadResult();
 	}
-
-} // end of class
+}
