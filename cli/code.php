@@ -1,4 +1,3 @@
-#! /usr/local/bin/php -c /usr/local/lib/php-no-xcache -v
 <?php
 /**
  * Bootstrap for the cron job which synchronizes the Joomlacode data
@@ -29,24 +28,6 @@ require_once JPATH_LIBRARIES . '/import.legacy.php';
 // Bootstrap the CMS libraries.
 require_once JPATH_LIBRARIES . '/cms.php';
 
-// Import the configuration.
-require_once JPATH_CONFIGURATION . '/configuration.php';
-
-// System configuration.
-$config = new JConfig;
-$error_reporting = (int) $config->error_reporting;
-
-// Configure error reporting
-if ($error_reporting == 0)
-{
-	error_reporting(0);
-}
-elseif ($error_reporting > 0)
-{
-	// Verbose error reporting.
-	error_reporting($error_reporting);
-}
-
 ini_set('display_errors', 1);
 
 // Set error handling levels
@@ -60,42 +41,73 @@ JError::setErrorHandling(E_NOTICE, 'echo');
 class Code extends JApplicationCli
 {
 	/**
+	 * Class constructor.
+	 */
+	public function __construct()
+	{
+		parent::__construct();
+
+		// Set the error reporting level
+		$error_reporting = (int) JFactory::getConfig()->get('error_reporting');
+
+		// Configure error reporting
+		if ($error_reporting == 0)
+		{
+			error_reporting(0);
+		}
+		elseif ($error_reporting > 0)
+		{
+			// Verbose error reporting.
+			error_reporting($error_reporting);
+		}
+	}
+
+	/**
 	 * Method to run the application routines.
 	 *
 	 * @return  void
 	 */
 	protected function doExecute()
 	{
-		$args = $this->input->args;
-
-		$command = strtolower(array_shift($args));
-
-		// Get the ID of the tracker to sync (unused)
-		$trackerId = $this->input->get('tracker', null);
-
-		switch ($command)
+		try
 		{
-			case 'sync' :
-			case 'filefix' :
-				// Define the component path.
-				defined('JPATH_COMPONENT') or define('JPATH_COMPONENT', realpath(JPATH_BASE . '/components/com_code'));
+			$args = $this->input->args;
 
-				// Set the include paths for com_code models and tables.
-				JModelLegacy::addIncludePath(realpath(JPATH_BASE . '/components/com_code/models'));
-				JTable::addIncludePath(realpath(JPATH_BASE . '/administrator/components/com_code/tables'));
+			$command = strtolower(array_shift($args));
 
-				// Get the tracker sync model.
-				$model = JModelLegacy::getInstance('TrackerSync', 'CodeModel');
+			// Get the ID of the tracker to sync (unused)
+			$trackerId = $this->input->get('tracker', null);
 
-				// Run the syncronization routine.
-				$model->$command();
+			switch ($command)
+			{
+				case 'sync' :
+				case 'filefix' :
+					// Define the component path.
+					defined('JPATH_COMPONENT') or define('JPATH_COMPONENT', realpath(JPATH_BASE . '/components/com_code'));
 
-				break;
+					// Set the include paths for com_code models and tables.
+					JModelLegacy::addIncludePath(realpath(JPATH_BASE . '/components/com_code/models'));
+					JTable::addIncludePath(realpath(JPATH_BASE . '/administrator/components/com_code/tables'));
 
-			default :
-				$this->out('A valid command was not specified.');
+					// Get the tracker sync model.
+					$model = JModelLegacy::getInstance('TrackerSync', 'CodeModel');
 
-				break;
+					// Run the syncronization routine.
+					$model->$command();
+
+					break;
+
+				default :
+					$this->out('A valid command was not specified.');
+
+					break;
+			}
+		}
+		catch (Exception $e)
+		{
+			$this->out('Exception caught: ' . $e->getMessage(), true);
+			$this->out('Stack trace: ' . $e->getTraceAsString(), true);
+			$this->close($e->getCode());
 		}
 	}
 }

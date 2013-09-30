@@ -10,9 +10,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.database.table');
-
 /**
  * Code tracker table object.
  *
@@ -109,7 +106,7 @@ class CodeTableTracker extends JTable
 	 * @return	void
 	 * @since	1.0
 	 */
-	public function __construct(& $db)
+	public function __construct($db)
 	{
 		parent::__construct('#__code_trackers', 'tracker_id', $db);
 
@@ -163,7 +160,7 @@ class CodeTableTracker extends JTable
 	 *
 	 * @return	int
 	 */
-	protected function _getAssetParentId()
+	protected function _getAssetParentId(JTable $table = null, $id = null)
 	{
 		// Initialise variables.
 		$assetId = null;
@@ -202,7 +199,7 @@ class CodeTableTracker extends JTable
 		if ($assetId) {
 			return $assetId;
 		} else {
-			return parent::_getAssetParentId();
+			return parent::_getAssetParentId($table, $id);
 		}
 	}
 }

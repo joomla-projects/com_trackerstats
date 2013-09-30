@@ -281,6 +281,17 @@ CREATE TABLE IF NOT EXISTS `#__code_tracker_snapshots` (
   PRIMARY KEY (`tracker_id`,`snapshot_day`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `#__code_tracker_status` (
+  `status_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `tracker_id` int(10) unsigned NOT NULL,
+  `state_id` int(11) DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
+  `instructions` text,
+  `jc_tracker_id` int(11) DEFAULT NULL,
+  `jc_status_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`status_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
 CREATE TABLE IF NOT EXISTS `#__code_users` (
   `user_id` int(11) NOT NULL AUTO_INCREMENT,
   `first_name` varchar(255) NOT NULL,

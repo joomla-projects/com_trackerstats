@@ -66,13 +66,13 @@ class CodeModelTrackerSync extends JModelLegacy
 	public function filefix()
 	{
 		// Initialize variables.
-		$db = & JFactory::getDBO();
+		$db = $this->getDbo();
+		$query = $db->getQuery(true)
+			->select('DISTINCT issue_id')
+			->from($db->quoteName('#__code_tracker_issue_files'));
 
-		$db->setQuery(
-			'SELECT DISTINCT issue_id' .
-			' FROM #__code_tracker_issue_files'
-		);
-		$issues = (array) $db->loadResultArray();
+		$db->setQuery($query);
+		$issues = $db->loadColumn();
 
 		foreach ($issues as $issue) {
 			$this->_fixFilesForIssue($issue);
@@ -268,7 +268,7 @@ class CodeModelTrackerSync extends JModelLegacy
 	{
 		$options['format'] = '{DATE}\t{TIME}\t{LEVEL}\t{CODE}\t{MESSAGE}';
 		$options['text_file'] = 'gforge_sync.php';
-		$log = JLog::addLogger($options, JLog::INFO);
+		JLog::addLogger($options, JLog::INFO);
 		JLog::add('Starting the GForge Sync', JLog::INFO);
 		// Initialize variables.
 		$username = JFactory::getConfig()->get('gforgeLogin');
@@ -292,16 +292,17 @@ class CodeModelTrackerSync extends JModelLegacy
 
 		// Sync each tracker.
 		$trackers = array_reverse($trackers);
+
 		foreach ($trackers as $tracker)
 		{
- 			if ($tracker->tracker_id == 8103 || $tracker->tracker_id == 11410) {
+			$currentTrackers = array(8103, 8549, 11410);
+
+			if (in_array($tracker->tracker_id, $currentTrackers))
+			{
 				$this->_populateTrackerFields($tracker->tracker_id);
 				$this->_syncTracker($tracker);
 			}
 		}
-
-//		$this->_populateTrackerFields($trackers[0]->tracker_id);
-//		$this->_syncTracker($trackers[0]);
 
 		$this->doStatusSnapshot(3);
 		return true;
@@ -1286,6 +1287,4 @@ class CodeModelTrackerSync extends JModelLegacy
 		}
 		return true;
 	}
-
-
 }
