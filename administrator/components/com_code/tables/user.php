@@ -10,9 +10,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.database.table');
-
 /**
  * Code tracker issue table object.
  *
@@ -241,11 +238,11 @@ class CodeTableUser extends JTable
 	/**
 	 * Constructor.
 	 *
-	 * @param	object	A database connector object.
-	 * @return	void
+	 * @param	JDatabaseDriver  $db  A database connector object.
+	 *
 	 * @since	1.0
 	 */
-	public function __construct(& $db)
+	public function __construct($db)
 	{
 		parent::__construct('#__users', 'id', $db);
 	}
@@ -255,7 +252,9 @@ class CodeTableUser extends JTable
 	 *
 	 * @param	mixed	Object or associative array.
 	 * @param	mixed	Space delimited string or array of fields to ignore when binding.
+	 *
 	 * @return	boolean	True on success.
+	 *
 	 * @since	1.0
 	 */
 	public function bind($source, $ignore = '')
@@ -269,15 +268,19 @@ class CodeTableUser extends JTable
 		}
 
 		// Optionally combine the first and last names into the name.
-		if (!empty($source['first_name']) && !empty($source['last_name'])) {
-			$source['name'] = $source['first_name'].' '.$source['last_name'];
+		if (!empty($source['first_name']) && !empty($source['last_name']))
+		{
+			$source['name'] = $source['first_name'] . ' ' . $source['last_name'];
 		}
 
 		// Special casees for the agreement flags.
-		if (empty($source['agreed_tos'])) {
+		if (empty($source['agreed_tos']))
+		{
 			$source['agreed_tos'] = 0;
 		}
-		if (empty($source['signed_jca'])) {
+
+		if (empty($source['signed_jca']))
+		{
 			$source['signed_jca'] = 0;
 		}
 
@@ -289,6 +292,7 @@ class CodeTableUser extends JTable
 	 * Method to perform data validation and sanitization before storage.
 	 *
 	 * @return	boolean	True on success.
+	 *
 	 * @since	1.0
 	 */
 	public function check()
@@ -315,7 +319,6 @@ class CodeTableUser extends JTable
 		}
 
 		// Ensure the email address is valid.
-		jimport('joomla.mail.helper');
 		if ((trim($this->email) == "") || !JMailHelper::isEmailAddress($this->email))
 		{
 			$this->setError(JText::_('WARNREG_MAIL'));
@@ -344,16 +347,22 @@ class CodeTableUser extends JTable
 		}
 
 		// Ensure the email is not already being used.
-		$this->_db->setQuery(
-			'SELECT id' .
-			' FROM #__users' .
-			' WHERE email = '.$this->_db->quote($this->email) .
-			' AND id <> '.(int) $this->id
+		$db = $this->getDbo();
+
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName('id'))
+				->from($db->quoteName('#__users'))
+				->where($db->quoteName('email') . ' = ' . $db->quote($this->email))
+				->where($db->quoteName('id') . ' <> ' . (int) $id)
 		);
-		$xid = intval($this->_db->loadResult());
+
+		$xid = intval($db->loadResult());
+
 		if ($xid && $xid != intval($this->id))
 		{
 			$this->setError(JText::_('WARNREG_EMAIL_INUSE'));
+
 			return false;
 		}
 
@@ -378,20 +387,33 @@ class CodeTableUser extends JTable
 		}
 	}
 
+	/**
+	 * Load the object by e-mail address
+	 *
+	 * @param   string  $email  E-mail address to lookup
+	 *
+	 * @return  bool  True on success
+	 */
 	public function loadByEmail($email)
 	{
-		// Look up the user id based on the email.
-		$this->_db->setQuery(
-			'SELECT id' .
-			' FROM #__users' .
-			' WHERE email = '.$this->_db->quote($email)
-		);
-		$userId = (int) $this->_db->loadResult();
+		$db = $this->getDbo();
 
-		if ($userId) {
+		// Look up the user id based on the email.
+		$db->setQuery(
+            $db->getQuery(true)
+				->select($db->quoteName('id'))
+				->from($db->quoteName('#__users'))
+				->where($db->quoteName('email') . ' = ' . $db->quote($email))
+		);
+
+		$userId = (int) $db->loadResult();
+
+		if ($userId)
+		{
 			return $this->load($userId);
 		}
-		else {
+		else
+		{
 			return false;
 		}
 	}
@@ -402,6 +424,7 @@ class CodeTableUser extends JTable
 	 * @param	integer	The primary key of the user record to load.
 	 * @return	boolean	True on success.
 	 * @since	1.0
+	 * @todo    Strict standards error
 	 */
 	function load($userId = null)
 	{

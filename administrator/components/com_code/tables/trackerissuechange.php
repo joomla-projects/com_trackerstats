@@ -10,9 +10,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.database.table');
-
 /**
  * Code tracker issue change table object.
  *
@@ -75,29 +72,43 @@ class CodeTableTrackerIssueChange extends JTable
 	/**
 	 * Class constructor.
 	 *
-	 * @param	object	A database connector object.
-	 * @return	void
+	 * @param	JDatabaseDriver  $db  A database connector object.
+	 *
 	 * @since	1.0
 	 */
-	public function __construct(& $db)
+	public function __construct($db)
 	{
 		parent::__construct('#__code_tracker_issue_changes', 'change_id', $db);
 	}
 
+	/**
+	 * Method to load a data object by its legacy ID
+	 *
+	 * @param   integer  $legacyId  The tracker ID to load
+	 *
+	 * @return  boolean  True on success
+	 */
 	public function loadByLegacyId($legacyId)
 	{
-		// Look up the user id based on the legacy id.
-		$this->_db->setQuery(
-			'SELECT '.$this->_tbl_key .
-			' FROM '.$this->_tbl .
-			' WHERE jc_change_id = '.(int) $legacyId
-		);
-		$issueId = (int) $this->_db->loadResult();
+		// Load the database object
+		$db = $this->getDbo();
 
-		if ($issueId) {
+		// Look up the change ID based on the legacy ID.
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($this->_tbl_key)
+				->from($this->_tbl)
+				->where('jc_change_id = ' . (int) $legacyId)
+		);
+
+		$issueId = (int) $db->loadResult();
+
+		if ($issueId)
+		{
 			return $this->load($issueId);
 		}
-		else {
+		else
+		{
 			return false;
 		}
 	}

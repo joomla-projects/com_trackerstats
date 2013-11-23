@@ -9,13 +9,12 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-
+// Include dependencies
 jimport('joomla.utilities.arrayhelper');
 
 // Include the GForge connector classes.
-require JPATH_COMPONENT.'/helpers/gforge.php';
-require JPATH_COMPONENT.'/helpers/gforgelegacy.php';
+require JPATH_COMPONENT . '/helpers/gforge.php';
+require JPATH_COMPONENT . '/helpers/gforgelegacy.php';
 
 /**
  * Tracker Synchronization Model for Joomla Code
@@ -60,8 +59,7 @@ class CodeModelTrackerSync extends JModelLegacy
 	 * @var    array  Associative array of processing statistics
 	 * @since  1.0
 	 */
-	protected $processingTotals = array();
-
+	protected $processingTotals = array('issues' => 0, 'changes' => 0, 'files' => 0, 'messages' => 0, 'users' => 0);
 
 	public function filefix()
 	{
@@ -198,78 +196,108 @@ class CodeModelTrackerSync extends JModelLegacy
 
 	/**
 	 * Gets counts of issues in tracker by status code and store in #__code_tracker_snapshots table by date
+	 *
+	 * @param   integer  $tracker_id  Tracker ID to record the snapshot for
+	 *
+	 * @return  void
 	 */
-
 	public function doStatusSnapshot($tracker_id)
 	{
 		// First get snapshot
-		$cutoffDate = new DateTime("now");
+		$cutoffDate = new DateTime;
 		$cutoffDate->sub(new DateInterval('P2Y'));
-		$today = new DateTime("now");
-		$query = $this->_db->getQuery(true);
-		$query->select('status_name, COUNT(*) as num_issues')
-			->from('#__code_tracker_issues')
-			->where('tracker_id = ' . (int) $tracker_id)
-			->where('DATE(modified_date) > ' . "'" . $cutoffDate->format('Y-m-d') . "'")
-			->where("DATE(close_date) = '0000-00-00'")
-			->group('status_name');
-		$this->_db->setQuery($query);
-		$dbArray = $this->_db->loadObjectList();
+
+		$today = new DateTime;
+		$db    = $this->getDbo();
+
+		$db->setQuery(
+			$db->getQuery(true)
+				->select('status_name, COUNT(*) as num_issues')
+				->from($db->quoteName('#__code_tracker_issues'))
+				->where($db->quoteName('tracker_id') . ' = ' . (int) $tracker_id)
+				->where('DATE(modified_date) > ' . $db->quote($cutoffDate->format('Y-m-d')))
+				->where('DATE(close_date) = ' . $db->quote('0000-00-00'))
+				->group('status_name')
+		);
+
+		$dbArray = $db->loadObjectList();
 		$jsonString = json_encode($dbArray);
 		$this->writeSnapshot($tracker_id, $today, $jsonString);
 	}
 
+	/**
+	 * Writes a status snapshot
+	 *
+	 * @param   integer   $tracker_id  Tracker ID to write the snapshot for
+	 * @param   DateTime  $date        DateTime object
+	 * @param   string    $jsonString  JSON data
+	 *
+	 * @return  void
+	 */
 	public function writeSnapshot($tracker_id, $date, $jsonString)
 	{
 		// Update or insert row to table
-		$query = $this->_db->getQuery(true);
-		$query->select('s.*');
-		$query->from('#__code_tracker_snapshots AS s');
-		$query->where('s.tracker_id = ' . (int) $tracker_id);
-		$query->where('s.snapshot_day = ' . $this->_db->quote($date->format('Y-m-d')));
-		$this->_db->setQuery($query);
+		$db = $this->getDbo();
+
+		$db->setQuery(
+			$db->getQuery(true)
+				->select('s.*')
+				->from($db->quoteName('#__code_tracker_snapshots', 's'))
+				->where($db->quoteName('s.tracker_id') . ' = ' . (int) $tracker_id)
+				->where($db->quoteName('s.snapshot_day') . ' = ' . $db->quote($date->format('Y-m-d')))
+		);
+
 		try
 		{
-			$result = $this->_db->loadObject();
+			$result = $db->loadObject();
 		}
-		catch (Exception $e) {}
+		catch (RuntimeException $e) {}
+
 		if ($result)
 		{
 			// Update row with new timestamp and json string
-			$query = $this->_db->getQuery(true);
-			$query->update('#__code_tracker_snapshots')
-				->set('modified_date = ' . $this->_db->quote($date->format('Y-m-d H:i:s')))
-				->set('status_counts = ' . $this->_db->quote($jsonString))
-				->where('tracker_id = ' . (int) $tracker_id)
-				->where('snapshot_day = ' . $this->_db->quote($date->format('Y-m-d')));
+			$db->setQuery(
+				$db->getQuery(true)
+					->update($db->quoteName('#__code_tracker_snapshots'))
+					->set($db->quoteName('modified_date') . ' = ' . $db->quote($date->format('Y-m-d H:i:s')))
+					->set($db->quoteName('status_counts') . ' = ' . $db->quote($jsonString))
+					->where($db->quoteName('tracker_id') . ' = ' . (int) $tracker_id)
+					->where($db->quoteName('snapshot_day') . ' = ' . $db->quote($date->format('Y-m-d')))
+			);
 		}
 		else
 		{
 			// Insert a new row
-			$query = $this->_db->getQuery(true);
-			$query->insert('#__code_tracker_snapshots')
-				->set('modified_date = ' . $this->_db->quote($date->format('Y-m-d H:i:s')))
-				->set('status_counts = ' . $this->_db->quote($jsonString))
-				->set('tracker_id = ' . (int) $tracker_id)
-				->set('snapshot_day = ' . $this->_db->quote($date->format('Y-m-d')));
+			$db->setQuery(
+				$db->getQuery(true)
+					->insert($db->quoteName('#__code_tracker_snapshots'))
+					->set($db->quoteName('modified_date') . ' = ' . $db->quote($date->format('Y-m-d H:i:s')))
+					->set($db->quoteName('status_counts') . ' = ' . $db->quote($jsonString))
+					->set($db->quoteName('tracker_id') . ' = ' . (int) $tracker_id)
+					->set($db->quoteName('snapshot_day') . ' = ' . $db->quote($date->format('Y-m-d')))
+			);
 		}
-		$this->_db->setQuery($query);
+
 		try
 		{
-			$result = $this->_db->execute();
+			$db->execute();
 		}
-		catch (Exception $e)
-		{
-			$test = $e;
-		}
+		catch (RuntimeException $e) {}
 	}
 
+	/**
+	 * Synchronize the data from Joomlacode
+	 *
+	 * @return  bool  True on success
+	 */
 	public function sync()
 	{
+		// Initialize the logger
 		$options['format'] = '{DATE}\t{TIME}\t{LEVEL}\t{CODE}\t{MESSAGE}';
 		$options['text_file'] = 'gforge_sync.php';
 		JLog::addLogger($options, JLog::INFO);
 		JLog::add('Starting the GForge Sync', JLog::INFO);
+
 		// Initialize variables.
 		$username = JFactory::getConfig()->get('gforgeLogin');
 		$password = JFactory::getConfig()->get('gforgePassword');
@@ -285,7 +313,9 @@ class CodeModelTrackerSync extends JModelLegacy
 
 		// Get the tracker data from the SOAP interface.
 		$trackers = $this->gforge->getProjectTrackers($project);
-		if (empty($trackers)) {
+
+		if (empty($trackers))
+		{
 			$this->setError('Unable to get trackers from the server.');
 			return false;
 		}
@@ -299,16 +329,24 @@ class CodeModelTrackerSync extends JModelLegacy
 
 			if (in_array($tracker->tracker_id, $currentTrackers))
 			{
-				$this->_populateTrackerFields($tracker->tracker_id);
-				$this->_syncTracker($tracker);
+				$this->populateTrackerFields($tracker->tracker_id);
+				$this->syncTracker($tracker);
 			}
 		}
 
 		$this->doStatusSnapshot(3);
+
 		return true;
 	}
 
-	private function _syncTracker($tracker)
+	/**
+	 * Synchronize the given tracker
+	 *
+	 * @param   object  $tracker  Tracker data object
+	 *
+	 * @return  boolean
+	 */
+	private function syncTracker($tracker)
 	{
 		// Get a tracker table object.
 		$table = $this->getTable('Tracker', 'CodeTable');
@@ -318,7 +356,7 @@ class CodeModelTrackerSync extends JModelLegacy
 
 		// Populate the appropriate fields from the server data object.
 		$data = array(
-			'item_count' => $tracker->item_total,
+			'item_count'      => $tracker->item_total,
 			'open_item_count' => $tracker->open_count,
 		);
 
@@ -326,45 +364,47 @@ class CodeModelTrackerSync extends JModelLegacy
 		$table->bind($data);
 
 		// Attempt to store the tracker data.
-		if (!$table->store()) {
+		if (!$table->store())
+		{
 			$this->setError($table->getError());
 			return false;
 		}
 
 		// Get the tracker item data from the SOAP interface.
 		$items = $this->gforge->getTrackerItems($tracker->tracker_id);
-		if (empty($items)) {
-			$this->setError('Unable to get tracker items from the server for tracker: '.$tracker->summary.'.');
+
+		if (empty($items))
+		{
+			$this->setError('Unable to get tracker items from the server for tracker: ' . $tracker->summary);
 			return false;
 		}
 
 		// Date for testing whether to sync or not
-		$cutoffDate = new DateTime("now");
+		$cutoffDate = new DateTime;
 		$cutoffDate->sub(new DateInterval('P1Y'));
 
-		$totalCount = count($items);
+		$totalCount     = count($items);
+		$skippedCount   = 0;
+		$processedCount = 0;
 
 		// Sync each tracker item.
 		for ($i = 0; $i < $totalCount; $i++)
 		{
 			$total = $i + 1;
-			// echo 'Processing row ' . $total . ' of ' . $totalCount . ', tracker_item_id=' . $item->tracker_item_id . " ...";
-			$item = $items[$i];
+			$item  = $items[$i];
+
 			// Exclude items closed > 1 year
 			$closeDate = new DateTime($item->close_date);
+
 			if (isset($item->close_date) && $closeDate < $cutoffDate)
 			{
-				// echo "Skipping item closed > 1 year\n";
 				$skippedCount++;
 			}
 			else
 			{
-				// echo "Processing item...";
-				$this->_syncTrackerItem($item, $tracker->tracker_id, $tracker->project_id, $table->tracker_id, $table->project_id);
+				$this->syncTrackerItem($item, $tracker->tracker_id, $tracker->project_id, $table->tracker_id, $table->project_id);
 				$processedCount++;
 			}
-
-// echo "Skipped issues: $skippedCount;  Processed issues: $processedCount;  Total read: $total of $totalCount\n";
 		}
 
 		JLog::add('Tracker: ' . $tracker->tracker_id . '; Skipped: ' . $skippedCount . ';  Processed issues: ' . $processedCount . ';  Total: ' . $total);
@@ -372,6 +412,7 @@ class CodeModelTrackerSync extends JModelLegacy
 		$logMessage .= '  Files: ' . $this->processingTotals['files'] . ';  Messages: ' . $this->processingTotals['messages'] . ' ;';
 		$logMessage .= '  Users: ' . $this->processingTotals['users'] . ' ;';
 		JLog::add($logMessage);
+
 		return true;
 	}
 
@@ -401,7 +442,7 @@ class CodeModelTrackerSync extends JModelLegacy
 		}
 
 		// Synchronize the tracker fields.
-		$this->_populateTrackerFields($tracker->tracker_id);
+		$this->populateTrackerFields($tracker->tracker_id);
 
 		// Get a tracker table object.
 		$table = $this->getTable('Tracker', 'CodeTable');
@@ -427,73 +468,87 @@ class CodeModelTrackerSync extends JModelLegacy
 		// Create the mock item object for use in the
 		$item = (object) array('tracker_item_id' => $issueId);
 
-		return $this->_syncTrackerItem($item, $trackerId, $tracker->project_id, $table->tracker_id, $table->project_id);
+		return $this->syncTrackerItem($item, $trackerId, $tracker->project_id, $table->tracker_id, $table->project_id);
 	}
 
-	private function _syncTrackerItem($item, $legacyTrackerId, $legacyProjectId, $trackerId, $projectId)
+	/**
+	 * @param   object   $item             The tracker item to update
+	 * @param   integer  $legacyTrackerId  The legacy tracker ID
+	 * @param   integer  $legacyProjectId  The legacy project ID
+	 * @param   integer  $trackerId        The system's tracker ID
+	 * @param   integer  $projectId        The system's project ID
+	 *
+	 * @return  bool
+	 */
+	private function syncTrackerItem($item, $legacyTrackerId, $legacyProjectId, $trackerId, $projectId)
 	{
+		// Get the database object
+		$db = $this->getDbo();
+
 		// Build the query to see if the item already exists.
-		$this->_db->setQuery(
-			'SELECT issue_id, modified_date, status' .
-			' FROM #__code_tracker_issues' .
-			' WHERE jc_issue_id = '.(int)$item->tracker_item_id
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName(array('issue_id', 'modified_date', 'status')))
+				->from($db->quoteName('#__code_tracker_issues'))
+				->where($db->quoteName('jc_issue_id') . ' = '. (int) $item->tracker_item_id)
 		);
 
 		// Execute the query to find out if the item exists.
-		$exists = $this->_db->loadObject();
+		$exists = $db->loadObject();
 
-		/*
-		 * Get full data on the tracker item from the GForge server.
-		 */
+		// Get full data on the tracker item from the GForge server.
 		$item = $this->gforge->getTrackerItem($item->tracker_item_id);
 
 		// If a tracker item wasn't found return false.
-		if (!is_object($item)) {
+		if (!is_object($item))
+		{
 			return false;
 		}
 
 		// No need to process an issue that hasn't changed.
-		if (!empty($exists->status) && !empty($exists->issue_id) && ($exists->modified_date == $item->last_modified_date)) {
-			// echo "Nothing changed: $exists->jc_issue_id\n";
+		if (!empty($exists->status) && !empty($exists->issue_id) && ($exists->modified_date == $item->last_modified_date))
+		{
 			return true;
 		}
 
 		// Get accessory data on the tracker item from the GForge server.
 		$changes = $this->gforge->getTrackerItemChanges($item->tracker_item_id);
-		$files = $this->gforgeLegacy->getTrackerItemFiles($item->tracker_item_id, $legacyTrackerId, $legacyProjectId);
+		$files   = $this->gforgeLegacy->getTrackerItemFiles($item->tracker_item_id, $legacyTrackerId, $legacyProjectId);
 
 		/*
 		 * Synchronize all users relevant to the tracker item.
 		 */
 
 		// Get a list of all of the user ids to look up.
-		$usersToLookUp = array(
-			$item->submitted_by,
-			$item->last_modified_by
-		);
+		$usersToLookUp = array($item->submitted_by, $item->last_modified_by);
 
-		// Add each user id that submitted a response to the list.
-		foreach ($item->messages as $message) {
+		// Add each user ID that submitted a response to the list.
+		foreach ($item->messages as $message)
+		{
 			$usersToLookUp[] = $message->submitted_by;
 		}
 
-		// Add each user id that committed a code change to the list.
-		foreach ($item->scm_commits as $commit) {
+		// Add each user ID that committed a code change to the list.
+		/* foreach ($item->scm_commits as $commit)
+		{
 			$usersToLookUp[] = $commit->user_id;
-		}
+		}*/
 
-		// Add each user id that is assigned to the list.
-		foreach ($item->assignees as $assignee) {
+		// Add each user ID that is assigned to the list.
+		foreach ($item->assignees as $assignee)
+		{
 			$usersToLookUp[] = $assignee->assignee;
 		}
 
-		// Add each user id that submitted a file to the list.
-		foreach ($files as $file) {
+		// Add each user ID that submitted a file to the list.
+		foreach ($files as $file)
+		{
 			$usersToLookUp[] = $file->submitted_by;
 		}
 
-		// Add each user id that made a change to the list.
-		foreach ($changes as $change) {
+		// Add each user ID that made a change to the list.
+		foreach ($changes as $change)
+		{
 			$usersToLookUp[] = $change->user_id;
 		}
 
@@ -502,14 +557,17 @@ class CodeModelTrackerSync extends JModelLegacy
 
 		// Get rid of user id 0
 		sort($usersToLookUp);
+
 		if ($usersToLookUp[0] == 0)
 		{
 			array_shift($usersToLookUp);
 		}
 
 		// Get the syncronized user ids.
-		$users = $this->_syncUsers($usersToLookUp);
-		if ($users === false) {
+		$users = $this->syncUsers($usersToLookUp);
+
+		if ($users === false)
+		{
 			return false;
 		}
 
@@ -525,91 +583,109 @@ class CodeModelTrackerSync extends JModelLegacy
 
 		// Populate the appropriate fields from the server data object.
 		$data = array(
-			'tracker_id' => $trackerId,
-			'project_id' => $projectId,
-			'build_id' => 0,
-			'state' => $item->status_id,
-			'priority' => $item->priority,
-			'created_date' => $item->open_date,
-			'created_by' => $users[$item->submitted_by],
-			'modified_date' => $item->last_modified_date,
-			'modified_by' => @$users[$item->last_modified_by],
-			'close_date' => $item->close_date,
-			'title' => $item->summary,
-			'alias' => '',
-			'description' => $item->details,
-			'jc_issue_id' => $item->tracker_item_id,
-			'jc_tracker_id' => $legacyTrackerId,
-			'jc_project_id' => $legacyProjectId,
-			'jc_created_by' => $item->submitted_by,
+			'tracker_id'     => $trackerId,
+			'project_id'     => $projectId,
+			'build_id'       => 0,
+			'state'          => $item->status_id,
+			'priority'       => $item->priority,
+			'created_date'   => $item->open_date,
+			'created_by'     => $users[$item->submitted_by],
+			'modified_date'  => $item->last_modified_date,
+			'modified_by'    => @$users[$item->last_modified_by],
+			'close_date'     => $item->close_date,
+			'title'          => $item->summary,
+			'alias'          => '',
+			'description'    => $item->details,
+			'jc_issue_id'    => $item->tracker_item_id,
+			'jc_tracker_id'  => $legacyTrackerId,
+			'jc_project_id'  => $legacyProjectId,
+			'jc_created_by'  => $item->submitted_by,
 			'jc_modified_by' => $item->last_modified_by
 		);
 
 		// Only populate the close by data if necessary.
-		if ($item->close_date && @$users[$item->last_modified_by]) {
+		if ($item->close_date && @$users[$item->last_modified_by])
+		{
 			$data['close_by'] = $users[$item->last_modified_by];
 			$data['jc_close_by'] = $item->last_modified_by;
 		}
 
-		if (!isset($item->close_date)) {
-			$data['close_date'] = '0000-00-00 00:00:00';
+		if (!isset($item->close_date))
+		{
+			$data['close_date'] = $db->getNullDate();
 		}
 
 		// Bind the data to the issue object.
 		$table->bind($data);
 
 		// Attempt to store the issue data.
-		if (!$table->store(true)) {
+		if (!$table->store(true))
+		{
 			$this->setError($table->getError());
+
 			return false;
 		}
+
 		$this->processingTotals['issues']++;
+
 		if (!isset($exists->status))
 		{
-			if (!$this->_addCreateActivities($data))
+			if (!$this->addCreateActivities($data))
 			{
 				return false;
 			}
 		}
 
 		// Synchronize the assignees associated with the tracker item.
-		if (is_array($item->assignees)) {
-			if (!$this->_syncTrackerItemAssignments($item->assignees, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id)) {
+		if (is_array($item->assignees))
+		{
+			if (!$this->syncTrackerItemAssignments($item->assignees, $users, $table->issue_id, $table->jc_issue_id))
+			{
 				return false;
 			}
 		}
 
 		// Synchronize the files associated with the tracker item.
-		if (is_array($files)) {
-			if (!$this->_syncTrackerItemFiles($files, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id)) {
+		if (is_array($files))
+		{
+			if (!$this->syncTrackerItemFiles($files, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id))
+			{
 				return false;
 			}
 		}
 
 		// Synchronize the messages associated with the tracker item.
-		if (is_array($item->messages)) {
-			if (!$this->_syncTrackerItemMessages($item->messages, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id)) {
+		if (is_array($item->messages))
+		{
+			if (!$this->syncTrackerItemMessages($item->messages, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id))
+			{
 				return false;
 			}
 		}
 
 		// Synchronize the changes associated with the tracker item.
-		if (is_array($changes)) {
-			if (!$this->_syncTrackerItemChanges($changes, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id)) {
+		if (is_array($changes))
+		{
+			if (!$this->syncTrackerItemChanges($changes, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id))
+			{
 				return false;
 			}
 		}
 
 		// Synchronize the commits associated with the tracker item.
-		if (is_array($item->scm_commits)) {
-			if (!$this->_syncTrackerItemCommits($item->scm_commits, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id)) {
+		/* if (is_array($item->scm_commits))
+		{
+			if (!$this->syncTrackerItemCommits($item->scm_commits, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id))
+			{
 				return false;
 			}
-		}
+		}*/
 
 		// Synchronize the extra fields for the tracker item.
-		if (is_array($item->extra_field_data)) {
-			if (!$this->_syncTrackerItemExtraFields($item->extra_field_data, $users, $table->issue_id, $table->tracker_id, $table->jc_issue_id, $table->jc_tracker_id)) {
+		if (is_array($item->extra_field_data))
+		{
+			if (!$this->syncTrackerItemExtraFields($item->extra_field_data, $table->issue_id))
+			{
 				return false;
 			}
 		}
@@ -617,7 +693,15 @@ class CodeModelTrackerSync extends JModelLegacy
 		return true;
 	}
 
-	private function _syncTrackerItemExtraFields($fieldValues, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
+	/**
+	 * Synchronize a tracker item's extra fields
+	 *
+	 * @param   array    $fieldValues  Array of field data
+	 * @param   integer  $issueId      Issue ID
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function syncTrackerItemExtraFields($fieldValues, $issueId)
 	{
 		// Some GForge tracker fields we don't care about as far as tags are concerned.
 		$ignore = array(
@@ -628,62 +712,74 @@ class CodeModelTrackerSync extends JModelLegacy
 		);
 
 		// Get the list of relevant tags.
+		$db   = $this->getDbo();
 		$tags = array();
+
 		foreach ($fieldValues as $value)
 		{
 			// Ignore some fields we don't care about.
-			if (in_array($this->fields[$value->tracker_extra_field_id]['alias'], $ignore)) {
+			if (in_array($this->fields[$value->tracker_extra_field_id]['alias'], $ignore))
+			{
 				continue;
 			}
 			// Special case for status.
-			elseif ($this->fields[$value->tracker_extra_field_id]['alias'] == 'status') {
-
+			elseif ($this->fields[$value->tracker_extra_field_id]['alias'] == 'status')
+			{
 				// Make sure we have a status for it.
-				if (isset($this->fieldValues[$value->field_data]) && isset($this->status[$this->fieldValues[$value->field_data]['value_id']])) {
+				if (isset($this->fieldValues[$value->field_data]) && isset($this->status[$this->fieldValues[$value->field_data]['value_id']]))
+				{
 					// Set the status value/name for the issue.
-					$this->_db->setQuery(
-						'UPDATE #__code_tracker_issues' .
-						' SET status = '.(int) $this->status[$this->fieldValues[$value->field_data]['value_id']] .
-						' , status_name = '.$this->_db->quote($this->fieldValues[$value->field_data]['name']) .
-						' WHERE issue_id = '.(int) $issueId
+					$db->setQuery(
+						$db->getQuery(true)
+							->update($db->quoteName('#__code_tracker_issues'))
+							->set($db->quoteName('status') . ' = ' . (int) $this->status[$this->fieldValues[$value->field_data]['value_id']])
+							->set($db->quoteName('status_name') . ' = ' . $db->quote($this->fieldValues[$value->field_data]['name']))
+							->where($db->quoteName('issue_id') . ' = ' . (int) $issueId)
 					);
 
 					// Check for an error.
-					if (!$this->_db->query()) {
-						$this->setError($this->_db->getErrorMsg());
+					try
+					{
+						$db->execute();
+					}
+					catch (RuntimeException $e)
+					{
+						$this->setError($e->getMessage());
+
 						return false;
 					}
-				}
-				else {
-					//print_r($value);
-					//JError::raiseWarning(500, $this->fieldValues[$value->field_data]['value_id'].': '.$this->fieldValues[$value->field_data]['name']);
 				}
 
 				continue;
 			}
 
-			if (!empty($this->fieldValues[$value->field_data])) {
+			if (!empty($this->fieldValues[$value->field_data]))
+			{
 				$tags[] = $this->fieldValues[$value->field_data]['name'];
 			}
 		}
 
 		// If there are no tags, move on.
-		if (empty($tags)) {
+		if (empty($tags))
+		{
 			return true;
 		}
 
 		// Make sure the tags we need are synced.
-		if (!$tags = $this->_syncTags($tags)) {
+		if (!$tags = $this->syncTags($tags))
+		{
 			return false;
 		}
 
 		// Get the current tag maps for the issue.
-		$this->_db->setQuery(
-			'SELECT tag_id' .
-			' FROM #__code_tracker_issue_tag_map' .
-			' WHERE issue_id = '.(int) $issueId
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName('tag_id'))
+				->from($db->quoteName('#__code_tracker_issue_tag_map'))
+				->where($db->quoteName('issue_id') . ' = ' . (int) $issueId)
 		);
-		$existing = (array) $this->_db->loadResultArray();
+
+		$existing = (array) $db->loadColumn();
 		JArrayHelper::toInteger($existing);
 
 		// Get the list of tag maps to add and delete.
@@ -691,16 +787,24 @@ class CodeModelTrackerSync extends JModelLegacy
 		$del = array_diff($existing, array_keys($tags));
 
 		// Delete the necessary tag maps.
-		if (!empty($del)) {
-			$this->_db->setQuery(
-				'DELETE FROM #__code_tracker_issue_tag_map' .
-				' WHERE issue_id = '.(int) $issueId .
-				' AND tag_id IN ('.implode(',', $del).')'
+		if (!empty($del))
+		{
+			$db->setQuery(
+				$db->getQuery(true)
+					->delete($db->quoteName('#__code_tracker_issue_tag_map'))
+					->where($db->quoteName('issue_id') . ' = ' . (int) $issueId)
+					->where($db->quoteName('tag_id') . ' IN (' . implode(',', $del) . ')')
 			);
 
 			// Check for an error.
-			if (!$this->_db->query()) {
-				$this->setError($this->_db->getErrorMsg());
+			try
+			{
+				$db->execute();
+			}
+			catch (RuntimeException $e)
+			{
+				$this->setError($e->getMessage());
+
 				return false;
 			}
 		}
@@ -709,16 +813,22 @@ class CodeModelTrackerSync extends JModelLegacy
 		foreach ($add as $tag)
 		{
 			// Insert the new tag map.
-			$this->_db->setQuery(
-				'INSERT INTO #__code_tracker_issue_tag_map' .
-				' (issue_id, tag_id, tag)' .
-				' VALUES' .
-				' ('.(int) $issueId.', '.(int) $tag.', '.$this->_db->quote($tags[$tag]).')'
+			$db->setQuery(
+				$db->getQuery(true)
+					->insert($db->quoteName('#__code_tracker_issue_tag_map'))
+					->columns(array($db->quoteName('issue_id'), $db->quoteName('tag_id'), $db->quoteName('tag')))
+					->values((int) $issueId . ', ' . (int) $tag . ', ' . $db->quote($tags[$tag]))
 			);
 
 			// Check for an error.
-			if (!$this->_db->query()) {
-				$this->setError($this->_db->getErrorMsg());
+			try
+			{
+				$db->execute();
+			}
+			catch (RuntimeException $e)
+			{
+				$this->setError($e->getMessage());
+
 				return false;
 			}
 		}
@@ -726,14 +836,28 @@ class CodeModelTrackerSync extends JModelLegacy
 		return true;
 	}
 
-	private function _syncTrackerItemAssignments($assignments, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
+	/**
+	 * Synchronizes tracker item assignments
+	 *
+	 * @param   array    $assignments    Array of assignment information for an item
+	 * @param   array    $users          Array of users
+	 * @param   integer  $issueId        Issue ID
+	 * @param   integer  $legacyIssueId  Legacy issue ID
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function syncTrackerItemAssignments($assignments, $users, $issueId, $legacyIssueId)
 	{
+		$db = $this->getDbo();
+
 		// Get the list of user assignments.
 		$ids = array();
+
 		foreach ($assignments as $assignment)
 		{
 			// Ignore the nobody user.
-			if ($assignment->assignee == 100) {
+			if ($assignment->assignee == 100)
+			{
 				continue;
 			}
 
@@ -741,33 +865,45 @@ class CodeModelTrackerSync extends JModelLegacy
 		}
 
 		// Remove assignments that don't belong.
-		if (empty($ids)) {
-			$this->_db->setQuery(
-				'DELETE  FROM #__code_tracker_issue_assignments' .
-				' WHERE issue_id = '.(int) $issueId
+		if (empty($ids))
+		{
+			$db->setQuery(
+				$db->getQuery(true)
+					->delete($db->quoteName('#__code_tracker_issue_assignments'))
+					->where($db->quoteName('issue_id') . ' = ' . (int) $issueId)
 			);
 		}
-		else {
-			$this->_db->setQuery(
-				'DELETE  FROM #__code_tracker_issue_assignments' .
-				' WHERE issue_id = '.(int) $issueId .
-				' AND jc_user_id NOT IN ('.implode(',', $ids).')'
+		else
+		{
+			$db->setQuery(
+				$db->getQuery(true)
+					->delete($db->quoteName('#__code_tracker_issue_assignments'))
+					->where($db->quoteName('issue_id') . ' = ' . (int) $issueId)
+					->where($db->quoteName('jc_user_id') . ' NOT IN (' . implode(',', $ids) . ')')
 			);
 		}
 
 		// Check for an error.
-		if (!$this->_db->query()) {
-			$this->setError($this->_db->getErrorMsg());
+		try
+		{
+			$db->execute();
+		}
+		catch (RuntimeException $e)
+		{
+			$this->setError($e->getMessage());
+
 			return false;
 		}
 
 		// Look up the existing local assignments.
-		$this->_db->setQuery(
-			'SELECT jc_user_id' .
-			' FROM #__code_tracker_issue_assignments' .
-			' WHERE issue_id = '.(int) $issueId
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName('jc_user_id'))
+				->from($db->quoteName('#__code_tracker_issue_assignments'))
+				->where($db->quoteName('issue_id') . ' = ' . (int) $issueId)
 		);
-		$existing = (array) $this->_db->loadResultArray();
+
+		$existing = $db->loadColumn();
 
 		// Get the list of assignments to insert as a diff from what we need vs what we have.
 		$inserts = array_diff($ids, $existing);
@@ -775,16 +911,22 @@ class CodeModelTrackerSync extends JModelLegacy
 		foreach ($inserts as $insert)
 		{
 			// Insert the new assignment.
-			$this->_db->setQuery(
-				'INSERT INTO #__code_tracker_issue_assignments' .
-				' (issue_id, user_id, jc_issue_id, jc_user_id)' .
-				' VALUES' .
-				' ('.(int) $issueId.', '.(int) @$users[$insert].', '.(int) $legacyIssueId.', '.(int) $insert.')'
+			$db->setQuery(
+				$db->getQuery(true)
+					->insert($db->quoteName('#__code_tracker_issue_assignments'))
+					->columns(array($db->quoteName('issue_id'), $db->quoteName('user_id'), $db->quoteName('jc_issue_id'), $db->quoteName('jc_user_id')))
+					->values((int) $issueId . ', ' . (int) @$users[$insert] . ', ' . (int) $legacyIssueId . ', ' . (int) $insert)
 			);
 
 			// Check for an error.
-			if (!$this->_db->query()) {
-				$this->setError($this->_db->getErrorMsg());
+			try
+			{
+				$db->execute();
+			}
+			catch (RuntimeException $e)
+			{
+				$this->setError($e->getMessage());
+
 				return false;
 			}
 		}
@@ -792,7 +934,19 @@ class CodeModelTrackerSync extends JModelLegacy
 		return true;
 	}
 
-	private function _syncTrackerItemCommits($commits, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
+	/**
+	 * Synchronize a tracker item's changes
+	 *
+	 * @param   array    $commits          Array of commit data
+	 * @param   array    $users            Array of user IDs
+	 * @param   string   $issueId          Issue ID
+	 * @param   integer  $trackerId        Tracker ID
+	 * @param   integer  $legacyIssueId    Legacy issue ID
+	 * @param   integer  $legacyTrackerId  Legacy tracker ID
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function syncTrackerItemCommits($commits, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
 	{
 		// Synchronize each commit.
 		foreach ($commits as $commit)
@@ -804,19 +958,20 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->loadByLegacyId($commit->scm_commit_id);
 
 			// Skip over rows that exist and haven't changed.
-			if ($table->commit_id && $table->created_date == $commit->commit_date) {
+			if ($table->commit_id && $table->created_date == $commit->commit_date)
+			{
 				continue;
 			}
 
 			// Populate the appropriate fields from the server data object.
 			$data = array(
-				'issue_id' => $issueId,
-				'tracker_id' => $trackerId,
-				'created_date' => $commit->commit_date,
-				'created_by' => $users[$commit->user_id],
-				'message' => $commit->message_log,
-				'jc_commit_id' => $commit->scm_commit_id,
-				'jc_issue_id' => $legacyIssueId,
+				'issue_id'      => $issueId,
+				'tracker_id'    => $trackerId,
+				'created_date'  => $commit->commit_date,
+				'created_by'    => $users[$commit->user_id],
+				'message'       => $commit->message_log,
+				'jc_commit_id'  => $commit->scm_commit_id,
+				'jc_issue_id'   => $legacyIssueId,
 				'jc_tracker_id' => $legacyTrackerId,
 				'jc_created_by' => $commit->user_id
 			);
@@ -825,7 +980,8 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->bind($data);
 
 			// Attempt to store the data.
-			if (!$table->store()) {
+			if (!$table->store())
+			{
 				$this->setError($table->getError());
 				return false;
 			}
@@ -834,13 +990,26 @@ class CodeModelTrackerSync extends JModelLegacy
 		return true;
 	}
 
-	private function _syncTrackerItemChanges($changes, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
+	/**
+	 * Synchronize a tracker item's changes
+	 *
+	 * @param   array    $changes          Array of change data
+	 * @param   array    $users            Array of user IDs
+	 * @param   string   $issueId          Issue ID
+	 * @param   integer  $trackerId        Tracker ID
+	 * @param   integer  $legacyIssueId    Legacy issue ID
+	 * @param   integer  $legacyTrackerId  Legacy tracker ID
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function syncTrackerItemChanges($changes, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
 	{
 		// Synchronize each change.
 		foreach ($changes as $change)
 		{
 			// Ignore non-status changes for now.
-			if ($change->field_name != 'status') {
+			if ($change->field_name != 'status')
+			{
 				continue;
 			}
 
@@ -851,41 +1020,58 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->loadByLegacyId($change->audit_trail_id);
 
 			// Skip over rows that exist and haven't changed.
-			if ($table->change_id && $table->change_date == $change->change_date) {
+			if ($table->change_id && $table->change_date == $change->change_date)
+			{
 				continue;
 			}
 
 			// Populate the appropriate fields from the server data object.
 			$data = array(
-				'issue_id' => $issueId,
-				'tracker_id' => $trackerId,
-				'change_date' => $change->change_date,
-				'change_by' => $users[$change->user_id],
-				'data' => serialize($change),
-				'jc_change_id' => $change->audit_trail_id,
-				'jc_issue_id' => $legacyIssueId,
+				'issue_id'      => $issueId,
+				'tracker_id'    => $trackerId,
+				'change_date'   => $change->change_date,
+				'change_by'     => $users[$change->user_id],
+				'data'          => serialize($change),
+				'jc_change_id'  => $change->audit_trail_id,
+				'jc_issue_id'   => $legacyIssueId,
 				'jc_tracker_id' => $legacyTrackerId,
-				'jc_change_by' => $change->user_id
+				'jc_change_by'  => $change->user_id
 			);
 
 			// Bind the data to the object.
 			$table->bind($data);
 
 			// Attempt to store the data.
-			if (!$table->store()) {
+			if (!$table->store())
+			{
 				$this->setError($table->getError());
 				return false;
 			}
-			if (!$this->_addActivity(3, $data['jc_issue_id'], $data['jc_change_by'], $data['jc_issue_id'], $data['change_date']))
+
+			if (!$this->addActivity(3, $data['jc_issue_id'], $data['jc_change_by'], $data['jc_issue_id'], $data['change_date']))
 			{
 				return false;
 			}
+
 			$this->processingTotals['changes']++;
 		}
+
 		return true;
 	}
 
-	private function _syncTrackerItemMessages($messages, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
+	/**
+	 * Synchronize a tracker item's messages
+	 *
+	 * @param   array    $messages         Array of message data
+	 * @param   array    $users            Array of user IDs
+	 * @param   string   $issueId          Issue ID
+	 * @param   integer  $trackerId        Tracker ID
+	 * @param   integer  $legacyIssueId    Legacy issue ID
+	 * @param   integer  $legacyTrackerId  Legacy tracker ID
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function syncTrackerItemMessages($messages, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
 	{
 		// Synchronize each message.
 		foreach ($messages as $message)
@@ -897,41 +1083,59 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->loadByLegacyId($message->tracker_item_message_id);
 
 			// Skip over rows that exist and haven't changed.
-			if ($table->response_id && $table->created_date == $message->adddate) {
+			if ($table->response_id && $table->created_date == $message->adddate)
+			{
 				continue;
 			}
 
 			// Populate the appropriate fields from the server data object.
 			$data = array(
-				'issue_id' => $issueId,
-				'tracker_id' => $trackerId,
-				'created_date' => $message->adddate,
-				'created_by' => $users[$message->submitted_by],
-				'body' => $message->body,
+				'issue_id'       => $issueId,
+				'tracker_id'     => $trackerId,
+				'created_date'   => $message->adddate,
+				'created_by'     => $users[$message->submitted_by],
+				'body'           => $message->body,
 				'jc_response_id' => $message->tracker_item_message_id,
-				'jc_issue_id' => $legacyIssueId,
-				'jc_tracker_id' => $legacyTrackerId,
-				'jc_created_by' => $message->submitted_by
+				'jc_issue_id'    => $legacyIssueId,
+				'jc_tracker_id'  => $legacyTrackerId,
+				'jc_created_by'  => $message->submitted_by
 			);
 
 			// Bind the data to the object.
 			$table->bind($data);
 
 			// Attempt to store the data.
-			if (!$table->store()) {
+			if (!$table->store())
+			{
 				$this->setError($table->getError());
+
 				return false;
 			}
-			if (!$this->_addCommentActivity($data))
+
+			if (!$this->addCommentActivity($data))
 			{
 				return false;
 			}
+
 			$this->processingTotals['messages']++;
 		}
+
 		return true;
 	}
 
-	private function _syncTrackerItemFiles($files, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
+	/**
+	 * Synchronize a tracker item's files
+	 *
+	 * @param   array    $files            Array of file data
+	 * @param   array    $users            Array of user IDs
+	 * @param   string   $issueId          Issue ID
+	 * @param   integer  $trackerId        Tracker ID
+	 * @param   integer  $legacyIssueId    Legacy issue ID
+	 * @param   integer  $legacyTrackerId  Legacy tracker ID
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function syncTrackerItemFiles($files, $users, $issueId, $trackerId, $legacyIssueId, $legacyTrackerId)
 	{
 		// Synchronize each file.
 		foreach ($files as $file)
@@ -943,22 +1147,23 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->loadByLegacyId($file->id);
 
 			// Skip over rows that exist and haven't changed.
-			if ($table->file_id) {
+			if ($table->file_id)
+			{
 				continue;
 			}
 
 			// Populate the appropriate fields from the server data object.
 			$data = array(
-				'issue_id' => $issueId,
-				'tracker_id' => $trackerId,
-				'created_date' => $file->adddate ? $file->adddate : date('Y-m-d'),
-				'created_by' => $users[$file->submitted_by],
-				'name' => $file->name,
-				'description' => $file->description,
-				'size' => $file->filesize,
-				'type' => $file->filetype,
-				'jc_file_id' => $file->id,
-				'jc_issue_id' => $legacyIssueId,
+				'issue_id'      => $issueId,
+				'tracker_id'    => $trackerId,
+				'created_date'  => $file->adddate ? $file->adddate : date('Y-m-d'),
+				'created_by'    => $users[$file->submitted_by],
+				'name'          => $file->name,
+				'description'   => $file->description,
+				'size'          => $file->filesize,
+				'type'          => $file->filetype,
+				'jc_file_id'    => $file->id,
+				'jc_issue_id'   => $legacyIssueId,
 				'jc_tracker_id' => $legacyTrackerId,
 				'jc_created_by' => $file->submitted_by
 			);
@@ -967,18 +1172,21 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->bind($data);
 
 			// Attempt to store the data.
-			if (!$table->store()) {
+			if (!$table->store())
+			{
 				$this->setError($table->getError());
+
 				return false;
 			}
 
-			if (!$this->_addFileActivity($data))
+			if (!$this->addFileActivity($data))
 			{
 				return false;
 			}
+
 			$this->processingTotals['files']++;
-			// echo "processing files for jc_issue_id: $data->jc_issue_id\n";
 		}
+
 		return true;
 	}
 
@@ -992,35 +1200,40 @@ class CodeModelTrackerSync extends JModelLegacy
 	 *
 	 * @since   1.0
 	 */
-	private function _syncTags($values)
+	private function syncTags($values)
 	{
 		// Initialize variables.
 		$tags = array();
 		$ors  = array();
+		$db   = $this->getDbo();
 
 		foreach ($values as $k => $value)
 		{
-			$ors[$k] = $this->_db->quote($value);
+			$ors[$k] = $db->quote($value);
 		}
 
 		// Build the query to see if the items already exist.
-		$this->_db->setQuery(
-			'SELECT tag_id, tag' .
-			' FROM #__code_tags' .
-			' WHERE tag = '.implode(' OR tag = ', $ors)
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName(array('tag_id', 'tag')))
+				->from($db->quoteName('#__code_tags'))
+				->where($db->quoteName('tag') . ' = ' . implode(' OR tag = ', $ors))
 		);
 
 		// Execute the query to find out if the items exist.
-		$exists = (array) $this->_db->loadObjectList();
+		$exists = (array) $db->loadObjectList();
 
 		// Build out the array of tags based on those that already exist.
-		foreach ($exists as $exist) {
+		foreach ($exists as $exist)
+		{
 			$tags[(int) $exist->tag_id] = $exist->tag;
 		}
 
 		// Get the list of tags to store.
 		$store = array_diff(array_values($values), array_values($tags));
-		if (empty($store)) {
+
+		if (empty($store))
+		{
 			return $tags;
 		}
 
@@ -1028,20 +1241,26 @@ class CodeModelTrackerSync extends JModelLegacy
 		foreach ($store as $value)
 		{
 			// Insert the new tag.
-			$this->_db->setQuery(
-				'INSERT INTO #__code_tags' .
-				' (tag)' .
-				' VALUES' .
-				' ('.$this->_db->quote($value).')'
+			$db->setQuery(
+				$db->getQuery(true)
+					->insert($db->quoteName('#__code_tags'))
+					->columns(array($db->quoteName('tag')))
+					->values($db->quote($value))
 			);
 
 			// Check for an error.
-			if (!$this->_db->query()) {
-				$this->setError($this->_db->getErrorMsg());
+			try
+			{
+				$db->execute();
+			}
+			catch (RuntimeException $e)
+			{
+				$this->setError($e->getMessage());
+
 				return false;
 			}
 
-			$tags[(int) $this->_db->insertid()] = $value;
+			$tags[(int) $db->insertid()] = $value;
 		}
 
 		return $tags;
@@ -1057,43 +1276,50 @@ class CodeModelTrackerSync extends JModelLegacy
 	 *
 	 * @since   1.0
 	 */
-	private function _syncUsers($ids)
+	private function syncUsers($ids)
 	{
 		// Initialize variables.
+		$db    = $this->getDbo();
 		$users = array();
 
 		// Ensure the ids are integers.
 		JArrayHelper::toInteger($ids);
 
 		// Build the query to see if the items already exist.
-		$this->_db->setQuery(
-			'SELECT user_id, jc_user_id' .
-			' FROM #__code_users' .
-			' WHERE jc_user_id IN ('.implode(',', $ids).')'
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName(array('user_id', 'jc_user_id')))
+				->from($db->quoteName('#__code_users'))
+				->where($db->quoteName('jc_user_id') . ' IN ('. implode(',', $ids) . ')')
 		);
 
 		// Execute the query to find out if the items exist.
-		$exists = (array) $this->_db->loadObjectList();
+		$exists = (array) $db->loadObjectList();
 
 		// Build out the array of users based on those that already exist.
-		foreach ($exists as $exist) {
+		foreach ($exists as $exist)
+		{
 			$users[$exist->jc_user_id] = (int) $exist->user_id;
 		}
 
 		// Get the list of user ids for user objects to extract data from the server.
 		$get = array_diff($ids, array_keys($users));
-		if (empty($get)) {
+
+		if (empty($get))
+		{
 			return $users;
 		}
 
 		// Get the list of user objects from the server.
 		$got = $this->gforge->getUsersById($get);
-		if (empty($got)) {
+
+		if (empty($got))
+		{
 			$this->setError('Unable to get users from the server.');
 			return false;
 		}
 
-		// Sync each tracker item.
+		// Sync each user.
 		foreach ($got as $user)
 		{
 			// Get a user table object.
@@ -1104,16 +1330,17 @@ class CodeModelTrackerSync extends JModelLegacy
 
 			// Populate the appropriate fields from the server data object.
 			$data = array(
-				'jc_user_id' => $user->user_id,
-				'username' => $user->unix_name,
-				'email' => $user->email,
+				'jc_user_id'   => $user->user_id,
+				'username'     => $user->unix_name,
+				'email'        => $user->email,
 				'registerDate' => $user->create_date,
-				'first_name' => $user->firstname,
-				'last_name' => $user->lastname
+				'first_name'   => $user->firstname,
+				'last_name'    => $user->lastname
 			);
 
 			// Do a little state conversion.
-			if ($user->status == 2) {
+			if ($user->status == 2)
+			{
 				$data['block'] = 1;
 			}
 
@@ -1121,48 +1348,69 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->bind($data);
 
 			// Attempt to store the user data.
-			if (!$table->store()) {
+			if (!$table->store())
+			{
 				$this->setError($table->getError());
+
 				return false;
 			}
+
 			$this->processingTotals['users']++;
+
 			$users[$table->jc_user_id] = (int) $table->id;
-			// echo "adding user=" . $table->jc_user_id . "\n";
 		}
 
 		return $users;
 	}
 
-	private function _populateTrackerFields($trackerId)
+	/**
+	 * Method to populate the tracker field array
+	 *
+	 * @param   integer  $trackerId  The tracker ID to populate
+	 *
+	 * @return  void
+	 */
+	private function populateTrackerFields($trackerId)
 	{
 		$fields = $this->gforge->getTrackerFields($trackerId);
 
 		foreach ($fields as $field)
 		{
-			if (empty($this->fields[$field->tracker_extra_field_id])) {
+			if (empty($this->fields[$field->tracker_extra_field_id]))
+			{
 				$this->fields[$field->tracker_extra_field_id] = array(
-					'field_id' => $field->tracker_extra_field_id,
-					'name' => $field->field_name,
-					'alias' => $field->alias,
+					'field_id'   => $field->tracker_extra_field_id,
+					'name'       => $field->field_name,
+					'alias'      => $field->alias,
 					'tracker_id' => $field->tracker_id
 				);
 
-				if ($field->alias == 'status') {
-					$this->_populateTrackerStatus($this->fields[$field->tracker_extra_field_id], $trackerId);
+				if ($field->alias == 'status')
+				{
+					$this->populateTrackerStatus($this->fields[$field->tracker_extra_field_id], $trackerId);
 				}
 			}
 
-			$this->_populateTrackerFieldValues($this->fields[$field->tracker_extra_field_id], $trackerId);
+			$this->populateTrackerFieldValues($this->fields[$field->tracker_extra_field_id], $trackerId);
 		}
 	}
 
-	private function _populateTrackerStatus($field, $legacyTrackerId)
+	/**
+	 * Populates the status table with data for the specified tracker
+	 *
+	 * @param   array    $field            The status field data
+	 * @param   integer  $legacyTrackerId  The tracker ID being updated
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function populateTrackerStatus($field, $legacyTrackerId)
 	{
 		// Get a tracker table object.
 		$tracker = $this->getTable('Tracker', 'CodeTable');
 		$tracker->loadByLegacyId($legacyTrackerId);
 
 		$values = $this->gforge->getTrackerFieldValues($field['field_id']);
+
 		foreach ($values as $value)
 		{
 			// Get a tracker issue file table object.
@@ -1172,25 +1420,28 @@ class CodeModelTrackerSync extends JModelLegacy
 			$table->loadByLegacyId($value->element_id);
 
 			// Skip over rows that exist and haven't changed.
-			if ($table->status_id && ($table->title == $value->element_name) && ($table->state_id == $value->status_id)) {
+			if ($table->status_id && ($table->title == $value->element_name) && ($table->state_id == $value->status_id))
+			{
 				$this->status[(int) $value->element_id] = (int) $table->status_id;
+
 				continue;
 			}
 
 			// Populate the appropriate fields from the server data object.
 			$data = array(
-				'tracker_id' => $tracker->tracker_id,
-				'state_id' => $value->status_id,
-				'title' => $value->element_name,
+				'tracker_id'    => $tracker->tracker_id,
+				'state_id'      => $value->status_id,
+				'title'         => $value->element_name,
 				'jc_tracker_id' => $legacyTrackerId,
-				'jc_status_id' => $value->element_id
+				'jc_status_id'  => $value->element_id
 			);
 
 			// Bind the data to the object.
 			$table->bind($data);
 
 			// Attempt to store the data.
-			if (!$table->store()) {
+			if (!$table->store())
+			{
 				$this->setError($table->getError());
 				return false;
 			}
@@ -1201,90 +1452,142 @@ class CodeModelTrackerSync extends JModelLegacy
 		return true;
 	}
 
-	private function _populateTrackerFieldValues($field)
+	/**
+	 * Method to populate the field data array
+	 *
+	 * @param   array  $field  The field data to populate
+	 *
+	 * @return  void
+	 */
+	private function populateTrackerFieldValues($field)
 	{
 		$values = $this->gforge->getTrackerFieldValues($field['field_id']);
 
 		foreach ($values as $value)
 		{
-			if (empty($this->fieldValues[$value->element_id])) {
+			if (empty($this->fieldValues[$value->element_id]))
+			{
 				$this->fieldValues[$value->element_id] = array(
 					'value_id' => $value->element_id,
 					'field_id' => $value->tracker_extra_field_id,
-					'name' => $value->element_name
+					'name'     => $value->element_name
 				);
 			}
 		}
 	}
 
-	private function _addActivity($type, $xref, $userId, $issueId, $date)
+	/**
+	 * Insert an activity record into the database
+	 *
+	 * @param   integer  $type     Activity ID
+	 * @param   integer  $xref     Reference ID
+	 * @param   integer  $userId   User ID
+	 * @param   integer  $issueId  Issue ID
+	 * @param   string   $date     Activity date
+	 *
+	 * @return  boolean
+	 */
+	private function addActivity($type, $xref, $userId, $issueId, $date)
 	{
-		$db = JFactory::getDbo();
+		$db = $this->getDbo();
 
-		$query = 'INSERT IGNORE INTO #__code_activity_detail SET activity_type = ' . (int) $type .
-		', activity_xref_id = ' . (int) $xref .
-		', jc_user_id = ' . (int) $userId .
-		', jc_issue_id = ' . (int) $issueId .
-		', activity_date = ' . $db->quote($date);
+		$query = 'INSERT IGNORE INTO #__code_activity_detail SET activity_type = ' . (int) $type
+			. ', activity_xref_id = ' . (int) $xref
+			. ', jc_user_id = ' . (int) $userId
+			. ', jc_issue_id = ' . (int) $issueId
+			. ', activity_date = ' . $db->quote($date);
 
 		$db->setQuery($query);
-		if (!$db->query())
+
+		try
 		{
-			$this->setError($db->getErrorMsg());
+			$db->execute();
+		}
+		catch (RuntimeException $e)
+		{
+			$this->setError($e->getMessage());
+
 			return false;
 		}
-		// echo "added activity type: $type:$userId:$issueID:$date\n";
+
 		return true;
 	}
 
-	private function _addCreateActivities($data)
+	/**
+	 * Proxy to addActivity() for create activities
+	 *
+	 * @param   array  $data  Data array to process
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function addCreateActivities($data)
 	{
-		if (!$this->_addActivity(1, $data['jc_issue_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
+		if (!$this->addActivity(1, $data['jc_issue_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
 		{
 			return false;
 		}
+
 		if (strpos($data['description'], "/pull/") !== false)
 		{
-			if (!$this->_addActivity(7, $data['jc_issue_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
+			if (!$this->addActivity(7, $data['jc_issue_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
 			{
 				return false;
 			}
 		}
+
 		return true;
 	}
 
-	private function _addFileActivity($data)
+	/**
+	 * Proxy to addActivity() for file activities
+	 *
+	 * @param   array  $data  Data array to process
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function addFileActivity($data)
 	{
 		if (strpos($data['name'], 'diff') !== false || strpos($data['name'], 'patch') !== false)
 		{
-			if (!$this->_addActivity(5, $data['jc_file_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
+			if (!$this->addActivity(5, $data['jc_file_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
 			{
 				return false;
 			}
 		}
+
 		return true;
 	}
 
-	private function _addCommentActivity($data)
+	/**
+	 * Proxy to addActivity() for comment activities
+	 *
+	 * @param   array  $data  Data array to process
+	 *
+	 * @return  boolean  True on success
+	 */
+	private function addCommentActivity($data)
 	{
-		if (!$this->_addActivity(2, $data['jc_response_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
+		if (!$this->addActivity(2, $data['jc_response_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
 		{
 			return false;
 		}
+
 		if (strpos($data['body'], "/pull/") !== false || strpos($data['body'], "/compare/") !== false || strpos($data['body'], ".diff") !== false)
 		{
-			if (!$this->_addActivity(6, $data['jc_response_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
+			if (!$this->addActivity(6, $data['jc_response_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
 			{
 				return false;
 			}
 		}
+
 		if (strpos($data['body'], "@test") !== false)
 		{
-			if (!$this->_addActivity(4, $data['jc_response_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
+			if (!$this->addActivity(4, $data['jc_response_id'], $data['jc_created_by'], $data['jc_issue_id'], $data['created_date']))
 			{
 				return false;
 			}
 		}
+
 		return true;
 	}
 }

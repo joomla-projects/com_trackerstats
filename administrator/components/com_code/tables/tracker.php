@@ -102,8 +102,8 @@ class CodeTableTracker extends JTable
 	/**
 	 * Class constructor.
 	 *
-	 * @param	object	A database connector object.
-	 * @return	void
+	 * @param	JDatabaseDriver  $db  A database connector object.
+	 *
 	 * @since	1.0
 	 */
 	public function __construct($db)
@@ -113,20 +113,34 @@ class CodeTableTracker extends JTable
 		$this->access = (int) JFactory::getConfig()->get('access');
 	}
 
+	/**
+	 * Method to load a data object by its legacy ID
+	 *
+	 * @param   integer  $legacyId  The tracker ID to load
+	 *
+	 * @return  boolean  True on success
+	 */
 	public function loadByLegacyId($legacyId)
 	{
-		// Look up the user id based on the legacy id.
-		$this->_db->setQuery(
-			'SELECT '.$this->_tbl_key .
-			' FROM '.$this->_tbl .
-			' WHERE jc_tracker_id = '.(int) $legacyId
-		);
-		$issueId = (int) $this->_db->loadResult();
+		// Load the database object
+		$db = $this->getDbo();
 
-		if ($issueId) {
+		// Look up the tracker ID based on the legacy ID.
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($this->_tbl_key)
+				->from($this->_tbl)
+				->where('jc_tracker_id = ' . (int) $legacyId)
+		);
+
+		$issueId = (int) $db->loadResult();
+
+		if ($issueId)
+		{
 			return $this->load($issueId);
 		}
-		else {
+		else
+		{
 			return false;
 		}
 	}
@@ -141,13 +155,15 @@ class CodeTableTracker extends JTable
 	protected function _getAssetName()
 	{
 		$k = $this->_tbl_key;
-		return 'com_code.tracker.'.(int) $this->$k;
+
+		return 'com_code.tracker.' . (int) $this->$k;
 	}
 
 	/**
 	 * Method to return the title to use for the asset table.
 	 *
 	 * @return	string
+	 *
 	 * @since	1.6
 	 */
 	protected function _getAssetTitle()
@@ -156,49 +172,63 @@ class CodeTableTracker extends JTable
 	}
 
 	/**
-	 * Get the parent asset id for the record
+	 * Method to get the parent asset under which to register this one.
+	 * By default, all assets are registered to the ROOT node with ID,
+	 * which will default to 1 if none exists.
+	 * The extended class can define a table and id to lookup.  If the
+	 * asset does not exist it will be created.
 	 *
-	 * @return	int
+	 * @param   JTable   $table  A JTable object for the asset parent.
+	 * @param   integer  $id     Id to look up
+	 *
+	 * @return  integer
 	 */
 	protected function _getAssetParentId(JTable $table = null, $id = null)
 	{
 		// Initialise variables.
 		$assetId = null;
-		$db		= $this->getDbo();
+		$db      = $this->getDbo();
 
 		// This is a tracker under a project.
-		if ($this->project_id > 0) {
-			// Build the query to get the asset id for the parent project.
-			$query	= $db->getQuery(true);
-			$query->select('asset_id');
-			$query->from('#__code_projects');
-			$query->where('project_id = '.(int) $this->project_id);
+		if ($this->project_id > 0)
+		{
+			// Get the asset ID from the database.
+			$db->setQuery(
+				$db->getQuery(true)
+					->select('asset_id')
+					->from('#__code_projects')
+					->where('project_id = ' . (int) $this->project_id)
+			);
 
-			// Get the asset id from the database.
-			$db->setQuery($query);
-			if ($result = $db->loadResult()) {
+			if ($result = $db->loadResult())
+			{
 				$assetId = (int) $result;
 			}
 		}
 		// This is a tracker that needs to parent with the extension.
-		elseif ($assetId === null) {
-			// Build the query to get the asset id for the component.
-			$query	= $db->getQuery(true);
-			$query->select('id');
-			$query->from('#__assets');
-			$query->where('name = '.$db->quote('com_code'));
+		elseif ($assetId === null)
+		{
+			// Get the asset ID from the database.
+			$db->setQuery(
+				$db->getQuery(true)
+					->select('id')
+					->from('#__assets')
+					->where('name = ' . $db->quote('com_code'))
+			);
 
-			// Get the asset id from the database.
-			$db->setQuery($query);
-			if ($result = $db->loadResult()) {
+			if ($result = $db->loadResult())
+			{
 				$assetId = (int) $result;
 			}
 		}
 
 		// Return the asset id.
-		if ($assetId) {
+		if ($assetId)
+		{
 			return $assetId;
-		} else {
+		}
+		else
+		{
 			return parent::_getAssetParentId($table, $id);
 		}
 	}
