@@ -19,7 +19,7 @@
 
 			<action
 				name="core.manage"
-				title="JAction_Manage"
+				title="JACTION_MANAGE"
 				description="JACTION_MANAGE_COMPONENT_DESC" />
 		</field>
 	</fieldset>

@@ -11,6 +11,8 @@
 defined('_JEXEC') or die;
 ?>
 
-<h1>
-	Joomla! Code Component.
-</h1>
+<div id="j-sidebar-container" class="span2">
+	<?php echo $this->sidebar; ?>
+</div>
+<div id="j-main-container" class="span10">
+</div>

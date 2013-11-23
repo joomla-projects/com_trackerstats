@@ -10,9 +10,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.view');
-
 /**
  * View to show the about screen.
  *
@@ -22,47 +19,47 @@ jimport('joomla.application.component.view');
  */
 class CodeViewAbout extends JViewLegacy
 {
-	protected $state;
+	/**
+	 * The necessary HTML to display the sidebar
+	 *
+	 * @var  string
+	 */
+	protected $sidebar;
 
 	/**
-	 * Display the view
+	 * Execute and display a template script.
 	 *
-	 * @since	1.6
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
 	 */
 	public function display($tpl = null)
 	{
-		$this->state	= $this->get('State');
-
-		// Check for errors.
-		if (count($errors = $this->get('Errors'))) {
-			JError::raiseError(500, implode("\n", $errors));
-			return false;
-		}
+		CodeHelper::addSubmenu('about');
 
 		$this->addToolbar();
-		parent::display($tpl);
+		$this->sidebar = JHtmlSidebar::render();
+
+		return parent::display($tpl);
 	}
 
 	/**
 	 * Add the page title and toolbar.
 	 *
-	 * @since	1.6
+	 * @return  void
 	 */
 	protected function addToolbar()
 	{
-		JRequest::setVar('hidemainmenu', true);
+		JFactory::getApplication()->input->set('hidemainmenu', true);
 
-		$user		= JFactory::getUser();
-		$canDo		= CodeHelper::getActions();
+		$canDo = CodeHelper::getActions();
 
-		JToolBarHelper::title(JText::_('COM_CODE_MANAGER_ABOUT'), 'code');
+		JToolBarHelper::title(JText::_('Joomla! Code Component - About'), 'code');
 
-
-		if ($canDo->get('core.admin')) {
+		if ($canDo->get('core.admin'))
+		{
 			JToolBarHelper::divider();
 			JToolBarHelper::preferences('com_code');
 		}
-
-		JToolBarHelper::help('JHELP_COMPONENTS_CODE_MANAGER_ABOUT');
 	}
 }

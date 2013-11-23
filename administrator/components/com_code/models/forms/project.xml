@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-	<!--
-		$Id: project.xml 461 2010-10-30 15:58:47Z louis $
-	-->
 <form>
 	<fieldset>
-		<field name="project_id"  type="text"
-			default="0" 
-			description ="JGLOBAL_FIELD_ID_DESC"
+		<field name="project_id" type="text"
+			default="0"
+			description="JGLOBAL_FIELD_ID_DESC"
 			label="JGLOBAL_FIELD_ID_LABEL"
 			readonly="true"
 			size="10"
@@ -100,7 +97,7 @@
 			section="branch"
 		/>
 
-		<field name="jc_project_id"  type="text"
+		<field name="jc_project_id" type="text"
 			description ="COM_CODE_FIELD_JC_PROJECT_DESC"
 			filter="integer"
 			label="COM_CODE_FIELD_JC_PROJECT_LABEL"
