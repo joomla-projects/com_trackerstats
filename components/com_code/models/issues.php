@@ -31,15 +31,16 @@ class CodeModelIssues extends JModelList
 	protected $context = 'com_code.issues';
 
 	/**
-	 * @param	boolean	True to join selected foreign information
+	 * Method to get a JDatabaseQuery object for retrieving the data set from a database.
 	 *
-	 * @return	string
-	 * @since	1.6
+	 * @return  JDatabaseQuery   A JDatabaseQuery object to retrieve the data set.
+	 *
+	 * @since   1.6
 	 */
-	function getListQuery()
+	protected function getListQuery()
 	{
 		// Create a new query object.
-		$db = $this->getDbo();
+		$db    = $this->getDbo();
 		$query = $db->getQuery(true);
 
 		$query->select($this->getState('item.select', 'a.*'));
@@ -62,103 +63,124 @@ class CodeModelIssues extends JModelList
 		$query->join('LEFT', '#__users AS mu on mu.id = a.modified_by');
 
 		// Filter by access level.
-		if ($access = $this->getState('filter.access')) {
-
+		if ($access = $this->getState('filter.access'))
+		{
 			// Get the current user and its authorised access levels.
-			$user = & JFactory::getUser();
-			$groups = $user->authorisedLevels();
+			$user   = JFactory::getUser();
+			$groups = $user->getAuthorisedViewLevels();
 
 			// Ensure we are only getting issues where we have access.
-			$query->where('t.access IN ('.implode(',', $groups).')');
-			$query->where('p.access IN ('.implode(',', $groups).')');
+			$query->where('t.access IN (' . implode(',', $groups) . ')');
+			$query->where('p.access IN (' . implode(',', $groups) . ')');
 		}
 
 		// Filter by state.
 		$stateFilter = $this->getState('filter.state');
-		if (is_numeric($stateFilter)) {
-			$query->where('a.state = '.(int) $stateFilter);
+
+		if (is_numeric($stateFilter))
+		{
+			$query->where('a.state = ' . (int) $stateFilter);
 		}
-		elseif (is_array($stateFilter)) {
+		elseif (is_array($stateFilter))
+		{
 			JArrayHelper::toInteger($stateFilter);
-			$query->where('a.state IN ('.implode(',', $stateFilter).')');
+			$query->where('a.state IN (' . implode(',', $stateFilter) . ')');
 		}
 
 		// Filter by a single or group of trackers.
 		$trackerId = $this->getState('filter.tracker_id');
-		if (is_numeric($trackerId)) {
+
+		if (is_numeric($trackerId))
+		{
 			$op = $this->getState('filter.tracker_id.include', true) ? ' = ' : ' <> ';
-			$query->where('a.tracker_id'.$op.(int) $trackerId);
+			$query->where('a.tracker_id' . $op . (int) $trackerId);
 		}
-		elseif (is_array($trackerId)) {
+		elseif (is_array($trackerId))
+		{
 			JArrayHelper::toInteger($trackerId);
 			$op = $this->getState('filter.tracker_id.include', true) ? ' IN ' : ' NOT IN ';
-			$query->where('a.tracker_id'.$op.'('.implode(',', $trackerId).')');
+			$query->where('a.tracker_id' . $op . '(' . implode(',', $trackerId) . ')');
 		}
 
 		// Filter by a single or group of status.
 		$status = $this->getState('filter.status_id');
-		if (is_numeric($status)) {
+
+		if (is_numeric($status))
+		{
 			$op = $this->getState('filter.status_id.include', true) ? ' = ' : ' <> ';
-			$query->where('a.status'.$op.(int) $status);
+			$query->where('a.status' . $op . (int) $status);
 		}
-		elseif (is_array($status)) {
+		elseif (is_array($status))
+		{
 			JArrayHelper::toInteger($status);
 			$op = $this->getState('filter.status_id.include', true) ? ' IN ' : ' NOT IN ';
-			$query->where('a.status'.$op.'('.implode(',', $status).')');
+			$query->where('a.status' . $op . '(' . implode(',', $status) . ')');
 		}
 
 		// Filter by a single or group of tags.
 		$tagId = $this->getState('filter.tag_id');
-		if (is_numeric($tagId)) {
+
+		if (is_numeric($tagId))
+		{
 			$op = $this->getState('filter.tag_id.include', true) ? ' = ' : ' <> ';
-			$query->where('tag.tag_id'.$op.(int) $tagId);
+			$query->where('tag.tag_id' . $op . (int) $tagId);
 			$query->join('LEFT', '#__code_tracker_issue_tag_map AS tags on tags.issue_id = a.issue_id');
 			$query->group('a.issue_id');
 		}
-		elseif (is_array($tagId)) {
+		elseif (is_array($tagId))
+		{
 			JArrayHelper::toInteger($tagId);
 			$op = $this->getState('filter.tag_id.include', true) ? ' IN ' : ' NOT IN ';
-			$query->where('tag.tag_id'.$op.'('.implode(',', $tagId).')');
+			$query->where('tag.tag_id' . $op . '(' . implode(',', $tagId) . ')');
 			$query->join('LEFT', '#__code_tracker_issue_tag_map AS tags on tags.issue_id = a.issue_id');
 			$query->group('a.issue_id');
 		}
 
 		// Filter by a single or group of submitters.
 		$submitterId = $this->getState('filter.submitter_id');
-		if (is_numeric($submitterId)) {
+
+		if (is_numeric($submitterId))
+		{
 			$op = $this->getState('filter.submitter_id.include', true) ? ' = ' : ' <> ';
-			$query->where('a.created_by'.$op.(int) $submitterId);
+			$query->where('a.created_by' . $op . (int) $submitterId);
 		}
-		elseif (is_array($submitterId)) {
+		elseif (is_array($submitterId))
+		{
 			JArrayHelper::toInteger($submitterId);
 			$op = $this->getState('filter.submitter_id.include', true) ? ' IN ' : ' NOT IN ';
-			$query->where('a.created_by'.$op.'('.implode(',', $submitterId).')');
+			$query->where('a.created_by' . $op . '(' . implode(',', $submitterId) . ')');
 		}
 
 		// Filter by a single or group of closers.
 		$closerId = $this->getState('filter.closer_id');
-		if (is_numeric($closerId)) {
+
+		if (is_numeric($closerId))
+		{
 			$op = $this->getState('filter.closer_id.include', true) ? ' = ' : ' <> ';
-			$query->where('a.closed_by'.$op.(int) $closerId);
+			$query->where('a.closed_by' . $op . (int) $closerId);
 		}
-		elseif (is_array($closerId)) {
+		elseif (is_array($closerId))
+		{
 			JArrayHelper::toInteger($closerId);
 			$op = $this->getState('filter.closer_id.include', true) ? ' IN ' : ' NOT IN ';
-			$query->where('a.closed_by'.$op.'('.implode(',', $closerId).')');
+			$query->where('a.closed_by' . $op . '(' . implode(',', $closerId) . ')');
 		}
 
 		// Filter by a single or group of assignees.
 		$assigneeId = $this->getState('filter.assignee_id');
-		if (is_numeric($assigneeId)) {
+
+		if (is_numeric($assigneeId))
+		{
 			$op = $this->getState('filter.assignee_id.include', true) ? ' = ' : ' <> ';
-			$query->where('ass.user_id'.$op.(int) $assigneeId);
+			$query->where('ass.user_id' . $op . (int) $assigneeId);
 			$query->join('LEFT', '#__code_tracker_issue_assignments AS ass on ass.issue_id = a.issue_id');
 			$query->group('a.issue_id');
 		}
-		elseif (is_array($assigneeId)) {
+		elseif (is_array($assigneeId))
+		{
 			JArrayHelper::toInteger($assigneeId);
 			$op = $this->getState('filter.assignee_id.include', true) ? ' IN ' : ' NOT IN ';
-			$query->where('ass.user_id'.$op.'('.implode(',', $assigneeId).')');
+			$query->where('ass.user_id' . $op . '(' . implode(',', $assigneeId) . ')');
 			$query->join('LEFT', '#__code_tracker_issue_assignments AS ass on ass.issue_id = a.issue_id');
 			$query->group('a.issue_id');
 		}
@@ -169,8 +191,9 @@ class CodeModelIssues extends JModelList
 
 		// Get the field to filter the date based on.
 		$dateField = $this->getState('filter.date_field', 'created');
-		switch ($dateField) {
 
+		switch ($dateField)
+		{
 			case 'modified':
 				$dateField = 'a.modified_date';
 				break;
@@ -187,18 +210,20 @@ class CodeModelIssues extends JModelList
 
 		// Get the date filtering type.
 		$dateFiltering = $this->getState('filter.date_filtering', 'off');
-		switch ($dateFiltering) {
+
+		switch ($dateFiltering)
+		{
 			case 'range':
-				$nullDate = $db->quote($db->getNullDate());
+				$nullDate       = $db->quote($db->getNullDate());
 				$startDateRange = $db->quote($this->getState('filter.start_date_range', $nullDate));
-				$endDateRange = $db->quote($this->getState('filter.end_date_range', $nullDate));
-				$query->where('('.$dateField.' >= '.$startDateRange.' AND '.$dateField.' <= '.$endDateRange.')');
+				$endDateRange   = $db->quote($this->getState('filter.end_date_range', $nullDate));
+				$query->where('(' . $dateField . ' >= ' . $startDateRange . ' AND ' . $dateField . ' <= ' . $endDateRange . ')');
 				break;
 
 			case 'relative':
-				$nowDate = $db->quote(JFactory::getDate()->toMySQL());
+				$nowDate      = $db->quote(JFactory::getDate()->toSql());
 				$relativeDate = (int) $this->getState('filter.relative_date', 0);
-				$query->where($dateField.' >= DATE_SUB('.$nowDate.', INTERVAL '.$relativeDate.' DAY)');
+				$query->where($dateField . ' >= DATE_SUB(' . $nowDate . ', INTERVAL ' . $relativeDate . ' DAY)');
 				break;
 
 			case 'off':
@@ -211,7 +236,7 @@ class CodeModelIssues extends JModelList
 		 */
 
 		// Add the list ordering clause.
-		$query->order($this->getState('list.ordering', 'a.created_date').' '.$this->getState('list.direction', 'ASC'));
+		$query->order($this->getState('list.ordering', 'a.created_date') . ' ' . $this->getState('list.direction', 'ASC'));
 
 		return $query;
 	}
@@ -219,35 +244,39 @@ class CodeModelIssues extends JModelList
 	/**
 	 * Method to get a list of articles.
 	 *
-	 * Overriden to inject convert the attribs field into a JParameter object.
+	 * Overriden to inject convert the attribs field into a JRegistry object.
 	 *
 	 * @return	mixed	An array of objects on success, false on failure.
 	 * @since	1.6
 	 */
-	public function & getItems()
+	public function &getItems()
 	{
 		// Get the list of items based on the list query.
-		$items	= parent::getItems();
+		$items = parent::getItems();
 
 		// Get the current user object and authorised access levels for the user.
-		$user	= JFactory::getUser();
-		$groups	= $user->authorisedLevels();
+		$user   = JFactory::getUser();
+		$groups = $user->getAuthorisedViewLevels();
 
 		// Process each item in the list.
-		foreach ($items as & $item) {
-
+		foreach ($items as & $item)
+		{
 			// Create the options object for the item.
-			$item->options = new JRegistry();
+			$item->options = new JRegistry;
 
 			// TODO: Embed the access controls in here
 			$item->options->set('access-edit', false);
 
 			// Set the option for telling the layout whether or not the item can be viewed.
 			$access = $this->getState('filter.access');
-			if ($access) {
+
+			if ($access)
+			{
 				// If the access filter has been set, we already have only the articles this user can view.
 				$item->options->set('access-view', true);
-			} else {
+			}
+			else
+			{
 				// If no access filter is set, the layout takes some responsibility for display of limited information.
 				$item->options->set('access-view', in_array($item->access, $groups) && in_array($item->tracker_access, $groups) && in_array($item->project_access, $groups));
 			}
@@ -261,14 +290,19 @@ class CodeModelIssues extends JModelList
 	 *
 	 * Note. Calling getState in this method will result in recursion.
 	 *
-	 * @since	1.6
+	 * @param   string  $ordering   An optional ordering field.
+	 * @param   string  $direction  An optional direction (asc|desc).
+	 *
+	 * @return  void
+	 *
+	 * @since   1.6
 	 */
-	protected function populateState()
+	protected function populateState($ordering = null, $direction = null)
 	{
 		$app = JFactory::getApplication('site');
 
 		// Set the project id from the request.
-		$pk = JRequest::getInt('project_id');
+		$pk = $app->input->getInt('project_id');
 		$this->setState('project.id', $pk);
 
 		// Load the component/page options from the application.
@@ -315,11 +349,11 @@ class CodeModelIssues extends JModelList
 		//$this->setState('filter.relative_date', null);
 
 		// Load the list options from the request.
-		$listId = $pk.':'.JRequest::getInt('Itemid', 0);
-		$this->setState('list.start', JRequest::getInt('limitstart', 0));
-		$this->setState('list.ordering', $app->getUserStateFromRequest('com_code.issues.'.$listId.'.filter_order', 'filter_order', 'a.modified_date', 'string'));
-		$this->setState('list.direction', $app->getUserStateFromRequest('com_code.issues.'.$listId.'.filter_order_Dir', 'filter_order_Dir', 'DESC', 'cmd'));
-		$this->setState('list.limit', $app->getUserStateFromRequest('com_code.issues.'.$listId.'.limit', 'limit', $app->getCfg('list_limit'), 'int'));
+		$listId = $pk . ':' . $app->input->getInt('Itemid', 0);
+		$this->setState('list.start', $app->input->getInt('limitstart', 0));
+		$this->setState('list.ordering', $app->getUserStateFromRequest('com_code.issues.' . $listId . '.filter_order', 'filter_order', 'a.modified_date', 'string'));
+		$this->setState('list.direction', $app->getUserStateFromRequest('com_code.issues.' . $listId . '.filter_order_Dir', 'filter_order_Dir', 'DESC', 'cmd'));
+		$this->setState('list.limit', $app->getUserStateFromRequest('com_code.issues.' . $listId . '.limit', 'limit', $app->get('list_limit'), 'int'));
 	}
 
 	/**
@@ -337,26 +371,26 @@ class CodeModelIssues extends JModelList
 	protected function getStoreId($id = '')
 	{
 		// Compile the store id.
-		$id .= ':'.$this->getState('filter.access');
-		$id .= ':'.$this->getState('filter.state');
-		$id .= ':'.$this->getState('filter.tracker_id');
-		$id .= ':'.$this->getState('filter.tracker_id.include');
-		$id .= ':'.$this->getState('filter.status_id');
-		$id .= ':'.$this->getState('filter.status_id.include');
-		$id .= ':'.$this->getState('filter.tag_id');
-		$id .= ':'.$this->getState('filter.tag_id.include');
-		$id .= ':'.$this->getState('filter.submitter_id');
-		$id .= ':'.$this->getState('filter.submitter_id.include');
-		$id .= ':'.$this->getState('filter.closer_id');
-		$id .= ':'.$this->getState('filter.closer_id.include');
-		$id .= ':'.$this->getState('filter.assignee_id');
-		$id .= ':'.$this->getState('filter.assignee_id.include');
-		$id .= ':'.$this->getState('filter.date_filtering');
-		$id .= ':'.$this->getState('filter.date_field');
-		$id .= ':'.$this->getState('filter.start_date_range');
-		$id .= ':'.$this->getState('filter.end_date_range');
-		$id .= ':'.$this->getState('filter.relative_date');
-		$id .= ':'.$this->getState('filter.search');
+		$id .= ':' . $this->getState('filter.access');
+		$id .= ':' . $this->getState('filter.state');
+		$id .= ':' . $this->getState('filter.tracker_id');
+		$id .= ':' . $this->getState('filter.tracker_id.include');
+		$id .= ':' . $this->getState('filter.status_id');
+		$id .= ':' . $this->getState('filter.status_id.include');
+		$id .= ':' . $this->getState('filter.tag_id');
+		$id .= ':' . $this->getState('filter.tag_id.include');
+		$id .= ':' . $this->getState('filter.submitter_id');
+		$id .= ':' . $this->getState('filter.submitter_id.include');
+		$id .= ':' . $this->getState('filter.closer_id');
+		$id .= ':' . $this->getState('filter.closer_id.include');
+		$id .= ':' . $this->getState('filter.assignee_id');
+		$id .= ':' . $this->getState('filter.assignee_id.include');
+		$id .= ':' . $this->getState('filter.date_filtering');
+		$id .= ':' . $this->getState('filter.date_field');
+		$id .= ':' . $this->getState('filter.start_date_range');
+		$id .= ':' . $this->getState('filter.end_date_range');
+		$id .= ':' . $this->getState('filter.relative_date');
+		$id .= ':' . $this->getState('filter.search');
 
 		return parent::getStoreId($id);
 	}

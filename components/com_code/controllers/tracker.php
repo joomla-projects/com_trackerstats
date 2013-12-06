@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.controller');
-
 /**
  * The Joomla Code Tracker Controller
  *
@@ -19,26 +16,8 @@ jimport('joomla.application.component.controller');
  * @subpackage	com_code
  * @since		1.0
  */
-class CodeControllerTracker extends JController
+class CodeControllerTracker extends JControllerLegacy
 {
-	protected $params;
-
-	/**
-	 * Constructor
-	 *
-	 * @return	void
-	 * @since	1.0
-	 */
-	public function __construct()
-	{
-		// Execute the parent constructor.
-		parent::__construct();
-
-		// Get the component/page parameters.
-		$app = JFactory::getApplication();
-		$this->params = $app->getParams('com_code');
-	}
-
 	/**
 	 * The display method should never be requested from the extended
 	 * controller.  Throw an error page and exit gracefully.
@@ -54,8 +33,9 @@ class CodeControllerTracker extends JController
 	public function test()
 	{
 		// Verify the request token.
-		$token = JRequest::getString('token', null, 'method');
-		if ($token != '1q2w3e4r') {
+		$token = $this->input->getString('token', null, 'method');
+		if ($token != '1q2w3e4r')
+		{
 			JError::raiseError(403, 'Access Forbidden');
 		}
 
@@ -67,8 +47,9 @@ class CodeControllerTracker extends JController
 	public function sync()
 	{
 		// Verify the request token.
-		$token = JRequest::getString('token', null, 'method');
-		if ($token != '1q2w3e4r') {
+		$token = $this->input->getString('token', null, 'method');
+		if ($token != '1q2w3e4r')
+		{
 			JError::raiseError(403, 'Access Forbidden');
 		}
 

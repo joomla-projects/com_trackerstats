@@ -35,12 +35,6 @@ class CodeHelper
 		);
 
 		JHtmlSidebar::addEntry(
-			'Branches',
-			'index.php?option=com_code&view=branches',
-			$vName == 'branches'
-		);
-
-		JHtmlSidebar::addEntry(
 			'Projects',
 			'index.php?option=com_code&view=projects',
 			$vName == 'projects'

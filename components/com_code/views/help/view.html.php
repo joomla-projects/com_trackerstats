@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.view');
-
 /**
  * The HTML Joomla Code help view.
  *
@@ -19,19 +16,22 @@ jimport('joomla.application.component.view');
  * @subpackage	com_code
  * @since		1.0
  */
-class CodeViewHelp extends JView
+class CodeViewHelp extends JViewLegacy
 {
 	/**
-	 * Display the view
+	 * Execute and display a template script.
 	 *
-	 * @return	void
-	 * @since	1.0
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @since   1.0
 	 */
 	public function display($tpl = null)
 	{
 		// Add the title to the breadcrumbs.
 		JFactory::getApplication()->getPathWay()->addItem(JText::_('COM_CODESTATUS_HELP'), JRoute::_('index.php?option=com_code&view=help'));
 
-		parent::display($tpl);
+		return parent::display($tpl);
 	}
 }

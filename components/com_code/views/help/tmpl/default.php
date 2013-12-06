@@ -10,11 +10,11 @@
 defined('_JEXEC') or die;
 
 // Load the JavaScript behaviors.
-JHtml::_('behavior.mootools');
-JHtml::script('status.js', 'components/com_code/media/js/');
+JHtml::_('behavior.framework');
+JHtml::_('script', 'status.js', 'components/com_code/media/js/');
 
 // Load the CSS stylesheets.
-JHtml::stylesheet('default.css', 'components/com_code/media/css/');
+JHtml::_('stylesheet', 'default.css', 'components/com_code/media/css/');
 ?>
 <h1>
 	Joomla! Code Snippets Help

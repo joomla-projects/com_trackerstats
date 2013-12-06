@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.view');
-
 /**
  * The HTML Joomla Code issue view.
  *
@@ -19,34 +16,32 @@ jimport('joomla.application.component.view');
  * @subpackage	com_code
  * @since		1.0
  */
-class CodeViewIssue extends JView
+class CodeViewIssue extends JViewLegacy
 {
 	/**
-	 * Display the view
+	 * Execute and display a template script.
 	 *
-	 * @return	void
-	 * @since	1.0
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @since   1.0
 	 */
 	public function display($tpl = null)
 	{
-		$state	= $this->get('State');
-		$item	= $this->get('Item');
-		$tags	= $this->get('Tags');
-		$user	= JFactory::getUser();
-		$params	= JFactory::getApplication()->getParams('com_code');
+		$this->state  = $this->get('State');
+		$this->item   = $this->get('Item');
+		$this->tags   = $this->get('Tags');
+		$this->user   = JFactory::getUser();
+		$this->params = JFactory::getApplication()->getParams('com_code');
 
 		// Check for errors.
-		if (count($errors = $this->get('Errors'))) {
+		if (count($errors = $this->get('Errors')))
+		{
 			JError::raiseError(500, implode("\n", $errors));
 			return false;
 		}
 
-		$this->assignRef('state', $state);
-		$this->assignRef('item', $item);
-		$this->assignRef('tags', $tags);
-		$this->assignRef('user', $user);
-		$this->assignRef('params', $params);
-
-		parent::display($tpl);
+		return parent::display($tpl);
 	}
 }

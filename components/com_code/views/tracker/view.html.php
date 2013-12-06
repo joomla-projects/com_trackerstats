@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.view');
-
 /**
  * The HTML Joomla Code tracker view.
  *
@@ -19,38 +16,35 @@ jimport('joomla.application.component.view');
  * @subpackage	com_code
  * @since		1.0
  */
-class CodeViewTracker extends JView
+class CodeViewTracker extends JViewLegacy
 {
 	/**
-	 * Display the view
+	 * Execute and display a template script.
 	 *
-	 * @return	void
-	 * @since	1.0
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @since   1.0
 	 */
 	public function display($tpl = null)
 	{
-		$state	= $this->get('State');
-		$item	= $this->get('Item');
-		$items	= $this->get('Items');
-		$page	= $this->get('Pagination');
-		$user	= JFactory::getUser();
-		$params	= JFactory::getApplication()->getParams('com_code');
+		$this->state  = $this->get('State');
+		$this->item   = $this->get('Item');
+		$this->items  = $this->get('Items');
+		$this->page   = $this->get('Pagination');
+		$this->user   = JFactory::getUser();
+		$this->params = JFactory::getApplication()->getParams('com_code');
 
 		// Check for errors.
-		if (count($errors = $this->get('Errors'))) {
+		if (count($errors = $this->get('Errors')))
+		{
 			JError::raiseError(500, implode("\n", $errors));
 			return false;
 		}
 
-		$page->setAdditionalUrlParam('tracker_alias', $item->alias);
+		$this->page->setAdditionalUrlParam('tracker_alias', $this->item->alias);
 
-		$this->assignRef('state', $state);
-		$this->assignRef('item', $item);
-		$this->assignRef('items', $items);
-		$this->assignRef('page', $page);
-		$this->assignRef('user', $user);
-		$this->assignRef('params', $params);
-
-		parent::display($tpl);
+		return parent::display($tpl);
 	}
 }

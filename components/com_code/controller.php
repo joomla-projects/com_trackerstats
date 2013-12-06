@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.controller');
-
 /**
  * Code Component Controller
  *
@@ -19,18 +16,21 @@ jimport('joomla.application.component.controller');
  * @subpackage	com_code
  * @since		1.6
  */
-class CodeController extends JController
+class CodeController extends JControllerLegacy
 {
 	/**
 	 * Display the view
+	 *
+	 * @param   boolean  $cachable   If true, the view output will be cached
+	 * @param   array    $urlparams  An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
+	 *
+	 * @return  CodeController
 	 */
-	function display($cachable = false, $urlparams = false)
+	public function display($cachable = false, $urlparams = array())
 	{
 		// Set the default view name and format from the Request.
-		$vName = JRequest::getWord('view', 'summary');
-		JRequest::setVar('view', $vName);
-
-		$user = JFactory::getUser();
+		$vName = $this->input->getWord('view', 'summary');
+		$this->input->setVar('view', $vName);
 
 		$cachable = true;
 
@@ -52,29 +52,32 @@ class CodeController extends JController
 			'lang' => 'CMD'
 		);
 
-		parent :: display($cachable, $safeurlparams);
+		return parent::display($cachable, $safeurlparams);
 	}
 
 	public function tracker_change_notification()
 	{
 		// Verify the request token.
-		$token = JRequest::getString('token', null, 'method');
-		if ($token != '1q2w3e4r') {
+		$token = $this->input->getString('token', null, 'method');
+
+		if ($token != '1q2w3e4r')
+		{
 			JError::raiseError(403, 'Access Forbidden');
 		}
 
 		// Get some values from the request.
-		$trackerId	= JRequest::getInt('tracker_id');
-		$issueId	= JRequest::getInt('tracker_item_id');
+		$trackerId	= $this->input->getInt('tracker_id');
+		$issueId	= $this->input->getInt('tracker_item_id');
 
 		// Get the tracker sync model.
 		$model = $this->getModel('TrackerSync');
 
 		// Attempt to scan for available builds.
-		if (!($success = $model->syncIssue($issueId, $trackerId))) {
+		if (!($success = $model->syncIssue($issueId, $trackerId)))
+		{
 			JError::raiseError(500, JText::sprintf('COM_CODE_ISSUE_SYNC_FAILURE', $model->getError()));
 		}
 
-		echo JText::_('COM_CODE_ISSUE_SYNC_SUCCESS');
+		$this->setRedirect(JRoute::_('index.php?option=com_code'), JText::_('COM_CODE_ISSUE_SYNC_SUCCESS'));
 	}
 }

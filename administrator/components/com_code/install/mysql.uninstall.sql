@@ -2,12 +2,6 @@ DROP TABLE IF EXISTS `#__code_activity_detail`;
 
 DROP TABLE IF EXISTS `#__code_activity_types`;
 
-DROP TABLE IF EXISTS `#__code_branches`;
-
-DROP TABLE IF EXISTS `#__code_builds`;
-
-DROP TABLE IF EXISTS `#__code_nightly_builds`;
-
 DROP TABLE IF EXISTS `#__code_projects`;
 
 DROP TABLE IF EXISTS `#__code_tags`;

@@ -10,10 +10,7 @@
 defined('_JEXEC') or die;
 
 // Include dependancies.
-jimport('joomla.application.component.controller');
-//require_once JPATH_COMPONENT.'/helpers/route.php';
-//require_once JPATH_COMPONENT.'/helpers/query.php';
 
-$controller = JController::getInstance('Code');
-$controller->execute(JRequest::getCmd('task'));
+$controller = JControllerLegacy::getInstance('Code');
+$controller->execute(JFactory::getApplication()->input->getCmd('task'));
 $controller->redirect();

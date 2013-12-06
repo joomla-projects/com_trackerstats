@@ -57,50 +57,6 @@ function CodeBuildRoute(& $query)
 					$query['Itemid'] = $cache['help'];
 				}
 				break;
-			case 'build':
-				if (!empty($cache['summary']))
-				{
-					unset($query['view']);
-					$query['Itemid'] = $cache['summary'];
-
-					$segments[] = 'builds';
-					$segments[] = @$query['branch_path'];
-					$segments[] = @$query['revision_id'];
-					unset($query['branch_path']);
-					unset($query['revision_id']);
-				}
-
-				break;
-			case 'branch':
-				if (!empty($cache['summary']))
-				{
-					unset($query['view']);
-					$query['Itemid'] = $cache['summary'];
-
-					$segments[] = 'builds';
-					$segments[] = @$query['branch_path'];
-					unset($query['branch_path']);
-				}
-				break;
-			case 'nightly':
-				if (!empty($cache['summary']))
-				{
-					unset($query['view']);
-					$query['Itemid'] = $cache['summary'];
-
-					$segments[] = 'history';
-					if (!empty($query['date'])) {
-
-						$date = JFactory::getDate($query['date']);
-
-						$segments[] = $date->toFormat('%Y');
-						$segments[] = $date->toFormat('%m');
-						$segments[] = $date->toFormat('%d');
-
-						unset($query['date']);
-					}
-				}
-				break;
 			case 'issue':
 				if (!empty($cache['summary']))
 				{
@@ -194,53 +150,6 @@ function CodeParseRoute($segments)
 	// Get the view/task definition from the next segment.
 	switch (array_shift($segments))
 	{
-		// View any code commit build reports.
-		case 'builds':
-
-			// Get the sanitized branch path from the request.
-			$fullPath = JFilterInput::getInstance()->clean(implode('/', $segments), 'path');
-
-			// Get the sanitized branch path from the request.
-			$partPath = JFilterInput::getInstance()->clean(implode('/', array_slice($segments, 0, -1)), 'path');
-
-			// Search the database for the appropriate branch.
-			$db = JFactory::getDBO();
-			$db->setQuery(
-				'SELECT branch_id, path' .
-				' FROM #__code_branches' .
-				' WHERE path = '.$db->quote($fullPath) .
-				' OR path = '.$db->quote($partPath),
-				0, 1
-			);
-			$branch = $db->loadObject();
-
-			// If we have found a branch finish setting up the request.
-			if ($branch) {
-
-				// we are looking at a branch
-				if ($branch->path == $fullPath) {
-					$vars['view'] = 'branch';
-					$vars['branch_id'] = (int) $branch->branch_id;
-					$vars['branch_path'] = $branch->path;
-				}
-				// we are looking at a build in a path
-				else if (($branch->path == $partPath) && (is_numeric(end($segments)))) {
-					$vars['view'] = 'build';
-					$vars['branch_id'] = (int) $branch->branch_id;
-					$vars['branch_path'] = $branch->path;
-					$vars['revision_id'] = (int) end($segments);
-				}
-				// If the branch isn't found throw a 404.
-				else {
-					JError::raiseError(404, 'Resource Not Found');
-				}
-			}
-			// If the branch isn't found throw a 404.
-			else {
-				JError::raiseError(404, 'Resource Not Found');
-			}
-			break;
-
 		// View trackers and issues.
 		case 'trackers':
 

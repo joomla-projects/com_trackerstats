@@ -61,82 +61,106 @@ class CodeModelTrackerSync extends JModelLegacy
 	 */
 	protected $processingTotals = array('issues' => 0, 'changes' => 0, 'files' => 0, 'messages' => 0, 'users' => 0);
 
+	/**
+	 * Fixes file data for issues
+	 *
+	 * @return  void
+	 */
 	public function filefix()
 	{
 		// Initialize variables.
 		$db = $this->getDbo();
-		$query = $db->getQuery(true)
-			->select('DISTINCT issue_id')
-			->from($db->quoteName('#__code_tracker_issue_files'));
 
-		$db->setQuery($query);
+		$db->setQuery(
+		   $db->getQuery(true)
+				->select('DISTINCT issue_id')
+				->from($db->quoteName('#__code_tracker_issue_files'))
+		);
+
 		$issues = $db->loadColumn();
 
-		foreach ($issues as $issue) {
-			$this->_fixFilesForIssue($issue);
+		foreach ($issues as $issue)
+		{
+			$this->fixFilesForIssue($issue);
 		}
 	}
 
-	private function _fixFilesForIssue($issueId)
+	/**
+	 * Fixes file data for issues
+	 *
+	 * @param   string  $issueId  Issue ID
+	 *
+	 * @return  mixed  Boolean false on failure, void otherwise
+	 */
+	private function fixFilesForIssue($issueId)
 	{
 		// Initialize variables.
-		$db = & JFactory::getDBO();
+		$db = $this->getDBO();
 
 		// Get some important issue data.
 		$db->setQuery(
-			'SELECT DISTINCT issue_id, created_by, created_date, modified_date' .
-			' FROM #__code_tracker_issues' .
-			' WHERE issue_id = '.(int) $issueId
+			$db->getQuery(true)
+				->select('DISTINCT issue_id, created_by, created_date, modified_date')
+				->from($db->quoteName('#__code_tracker_issues'))
+				->where($db->quoteName('issue_id') . ' = ' . (int) $issueId)
 		);
 		$issue = $db->loadObject();
 
 		// Get the list of comments for this issue.
 		$db->setQuery(
-			'SELECT created_date, created_by, body' .
-			' FROM #__code_tracker_issue_responses' .
-			' WHERE issue_id = '.(int) $issue->issue_id .
-			' ORDER BY created_date DESC'
+		   $db->getQuery(true)
+				->select('created_date, created_by, body')
+				->from($db->quoteName('#__code_tracker_issue_responses'))
+				->where($db->quoteName('issue_id') . ' = ' . (int) $issue->issue_id)
+				->order('created_date DESC')
 		);
 		$comments = (array) $db->loadObjectList();
 
 		// Get the list of status changes for this issue.
 		$db->setQuery(
-			'SELECT change_date, change_by' .
-			' FROM #__code_tracker_issue_changes' .
-			' WHERE issue_id = '.(int) $issue->issue_id .
-			' ORDER BY change_date DESC'
+		   $db->getQuery(true)
+				->select('change_date, change_by')
+				->from($db->quoteName('#__code_tracker_issue_changes'))
+				->where($db->quoteName('issue_id') . ' = ' . (int) $issue->issue_id)
+				->order('change_date DESC')
 		);
 		$changes = (array) $db->loadObjectList();
 
 		// Get the list of files for this issue.
 		$db->setQuery(
-			'SELECT file_id, created_by, name' .
-			' FROM #__code_tracker_issue_files' .
-			' WHERE issue_id = '.(int) $issue->issue_id .
-			' ORDER BY jc_file_id DESC'
+		   $db->getQuery(true)
+				->select('file_id, created_by, name')
+				->from($db->quoteName('#__code_tracker_issue_files'))
+				->where($db->quoteName('issue_id') . ' = ' . (int) $issue->issue_id)
+				->order('jc_file_id DESC')
 		);
 		$files = (array) $db->loadObjectList();
 
-		foreach ($files as & $file) {
-
+		foreach ($files as &$file)
+		{
 			$found = false;
 
 			// First we look for a comment.
-			foreach ($comments as & $comment) {
-				if (empty($comment->used) && ($comment->created_by == $file->created_by)) {
-					$found = true;
-					$comment->used = true;
+			foreach ($comments as & $comment)
+			{
+				if (empty($comment->used) && ($comment->created_by == $file->created_by))
+				{
+					$found              = true;
+					$comment->used      = true;
 					$file->created_date = $comment->created_date;
 					break;
 				}
 			}
 
 			// If not found, next we look for a change.
-			if (!$found) {
-				foreach ($changes as & $change) {
-					if (empty($change->used) && ($change->change_by == $file->created_by)) {
-						$found = true;
-						$change->used = true;
+			if (!$found)
+			{
+				foreach ($changes as & $change)
+				{
+					if (empty($change->used) && ($change->change_by == $file->created_by))
+					{
+						$found              = true;
+						$change->used       = true;
 						$file->created_date = $change->change_date;
 						break;
 					}
@@ -144,38 +168,48 @@ class CodeModelTrackerSync extends JModelLegacy
 			}
 
 			// Last we look to see if the issue was created by the person who posted the file
-			if (!$found) {
-				if ($issue->created_by == $file->created_by) {
-					$found = true;
+			if (!$found)
+			{
+				if ($issue->created_by == $file->created_by)
+				{
+					$found              = true;
 					$file->created_date = $issue->created_date;
 				}
 			}
 
-			if ($found) {
+			if ($found)
+			{
 				// Fix the row in the database.
-				$this->_db->setQuery(
-					'UPDATE #__code_tracker_issue_files' .
-					' SET created_date = '.$this->_db->quote($file->created_date) .
-					' WHERE file_id = '.(int) $file->file_id
+				$db->setQuery(
+					$db->getQuery(true)
+						->update($db->quoteName('#__code_tracker_issue_files'))
+						->set($db->quoteName('created_date') . ' = ' . $db->quote($file->created_date))
+						->where($db->quoteName('file_id') . ' = ' . (int) $file->file_id)
 				);
 
 				// Check for an error.
-				if (!$this->_db->query()) {
+				if (!$this->_db->query())
+				{
 					$this->setError($this->_db->getErrorMsg());
+
 					return false;
 				}
 			}
-			else {
+			else
+			{
 				// Fix the row in the database.
 				$this->_db->setQuery(
-					'UPDATE #__code_tracker_issue_files' .
-					' SET created_date = '.$this->_db->quote($issue->modified_date) .
-					' WHERE file_id = '.(int) $file->file_id
+					$db->getQuery(true)
+						->update($db->quoteName('#__code_tracker_issue_files'))
+						->set($db->quoteName('created_date') . ' = ' . $db->quote($issue->modified_date))
+						->where($db->quoteName('file_id') . ' = ' . (int) $file->file_id)
 				);
 
 				// Check for an error.
-				if (!$this->_db->query()) {
+				if (!$this->_db->query())
+				{
 					$this->setError($this->_db->getErrorMsg());
+
 					return false;
 				}
 			}

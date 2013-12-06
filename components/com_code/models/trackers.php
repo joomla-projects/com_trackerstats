@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.model');
-
 /**
  * Trackers Model for Joomla Code
  *
@@ -19,7 +16,7 @@ jimport('joomla.application.component.model');
  * @subpackage	com_code
  * @since		1.0
  */
-class CodeModelTrackers extends JModel
+class CodeModelTrackers extends JModelLegacy
 {
 	public function getItems()
 	{

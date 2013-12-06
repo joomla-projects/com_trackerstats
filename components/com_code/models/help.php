@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.model');
-
 /**
  * Help Model for Joomla Code
  *
@@ -19,6 +16,6 @@ jimport('joomla.application.component.model');
  * @subpackage	com_code
  * @since		1.0
  */
-class CodeModelHelp extends JModel
+class CodeModelHelp extends JModelLegacy
 {
 }

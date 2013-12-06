@@ -9,9 +9,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.application.component.modelitem');
-
 /**
  * Tracker Model for Joomla Code
  *
@@ -35,7 +32,7 @@ class CodeModelTracker extends JModelItem
 	/**
 	 * Method to get article data.
 	 *
-	 * @param	integer	The id of the article.
+	 * @param	integer	 $pk  The id of the article.
 	 *
 	 * @return	mixed	Menu item data object on success, false on failure.
 	 */
@@ -45,15 +42,17 @@ class CodeModelTracker extends JModelItem
 		$pk = (!empty($pk)) ? $pk : (int) $this->getState('tracker.id');
 
 		// Initialize the memory storage array.
-		if ($this->_item === null) {
+		if ($this->_item === null)
+		{
 			$this->_item = array();
 		}
 
-		if (!isset($this->_item[$pk])) {
-
-			try {
+		if (!isset($this->_item[$pk]))
+		{
+			try
+			{
 				// Get a database and query object.
-				$db = $this->getDbo();
+				$db    = $this->getDbo();
 				$query = $db->getQuery(true);
 
 				// Select the fields from the main table.
@@ -69,8 +68,9 @@ class CodeModelTracker extends JModelItem
 
 				// Filter by published state.
 				$published = $this->getState('filter.published');
-				$archived = $this->getState('filter.archived');
-				if (is_numeric($published)) {
+				$archived  = $this->getState('filter.archived');
+				if (is_numeric($published))
+				{
 					$query->where('(a.state = ' . (int) $published . ' OR a.state =' . (int) $archived . ')');
 				}
 
@@ -78,12 +78,8 @@ class CodeModelTracker extends JModelItem
 				$db->setQuery($query);
 				$data = $db->loadObject();
 
-				// Check for errors.
-				if ($error = $db->getErrorMsg()) {
-					throw new Exception($error);
-				}
-
-				if (empty($data)) {
+				if (empty($data))
+				{
 					JError::raiseError(404, JText::_('COM_CODE_ERROR_TRACKER_NOT_FOUND'));
 				}
 
@@ -94,35 +90,39 @@ class CodeModelTracker extends JModelItem
 				}
 
 				// Setup the options registry object.
-				$options = new JRegistry($data->options);
+				$options       = new JRegistry($data->options);
 				$data->options = clone $this->getState('options');
 				$data->options->merge($options);
 
 				// Setup the metadata registry object.
-				$metadata = new JRegistry($data->metadata);
+				$metadata       = new JRegistry($data->metadata);
 				$data->metadata = $metadata;
 
 				// Compute access permissions.
-				if ($access = $this->getState('filter.access')) {
+				if ($access = $this->getState('filter.access'))
+				{
 					// If the access filter has been set, we already know this user can view.
 					$data->options->set('access-view', true);
 				}
-				else {
+				else
+				{
 					// If no access filter is set, the layout takes some responsibility for display of limited information.
-					$user =& JFactory::getUser();
+					$user   =& JFactory::getUser();
 					$groups = $user->authorisedLevels();
 
-					if ($data->project_id == 0 || $data->project_access === null) {
+					if ($data->project_id == 0 || $data->project_access === null)
+					{
 						$data->options->set('access-view', in_array($data->access, $groups));
 					}
-					else {
+					else
+					{
 						$data->options->set('access-view', in_array($data->access, $groups) && in_array($data->project_access, $groups));
 					}
 				}
 
 				$this->_item[$pk] = $data;
 			}
-			catch (JException $e)
+			catch (Exception $e)
 			{
 				$this->setError($e);
 				$this->_item[$pk] = false;
@@ -134,17 +134,20 @@ class CodeModelTracker extends JModelItem
 
 
 	/**
-	 * Get the articles in the category
+	 * Get the issues for a tracker
 	 *
-	 * @return	mixed	An array of articles or false if an error occurs.
+	 * @param   integer  $pk  The tracker ID
+	 *
+	 * @return  mixed  An array of articles or false if an error occurs.
 	 */
 	public function getItems($pk = null)
 	{
 		// Initialise variables.
 		$pk = (!empty($pk)) ? $pk : (int) $this->getState('tracker.id');
 
-		if ($this->issues === null && $branch = $this->getItem()) {
-			$model = JModel::getInstance('Issues', 'CodeModel', array('ignore_request' => true));
+		if ($this->issues === null && $branch = $this->getItem())
+		{
+			$model = JModelLegacy::getInstance('Issues', 'CodeModel', array('ignore_request' => true));
 
 			$model->setState('options', $this->getState('options'));
 			$model->setState('filter.tracker_id', $pk);
@@ -157,7 +160,8 @@ class CodeModelTracker extends JModelItem
 
 			$this->issues = $model->getItems();
 
-			if ($this->issues === false) {
+			if ($this->issues === false)
+			{
 				$this->setError($model->getError());
 			}
 
@@ -165,7 +169,6 @@ class CodeModelTracker extends JModelItem
 		}
 
 		return $this->issues;
-
 	}
 
 	public function getPagination()
@@ -187,7 +190,7 @@ class CodeModelTracker extends JModelItem
 		$app = JFactory::getApplication('site');
 
 		// Set the tracker id from the request.
-		$pk = JRequest::getInt('tracker_id');
+		$pk = $app->input->getInt('tracker_id');
 		$this->setState('tracker.id', $pk);
 
 		// Load the component/page options from the application.
@@ -230,11 +233,11 @@ class CodeModelTracker extends JModelItem
 		//$this->setState('filter.relative_date', null);
 
 		// Load the list options from the request.
-		$listId = $pk.':'.JRequest::getInt('Itemid', 0);
-		$this->setState('list.start', JRequest::getInt('limitstart', 0));
-		$this->setState('list.ordering', $app->getUserStateFromRequest('com_code.tracker.'.$listId.'.filter_order', 'filter_order', 'a.modified_date', 'string'));
-		$this->setState('list.direction', $app->getUserStateFromRequest('com_code.tracker.'.$listId.'.filter_order_Dir', 'filter_order_Dir', 'DESC', 'cmd'));
-		$this->setState('list.limit', $app->getUserStateFromRequest('com_code.tracker.'.$listId.'.limit', 'limit', $app->getCfg('list_limit'), 'int'));
+		$listId = $pk . ':' . $app->input->getInt('Itemid', 0);
+		$this->setState('list.start', $app->input->getInt('limitstart', 0));
+		$this->setState('list.ordering', $app->getUserStateFromRequest('com_code.tracker.' . $listId . '.filter_order', 'filter_order', 'a.modified_date', 'string'));
+		$this->setState('list.direction', $app->getUserStateFromRequest('com_code.tracker.' . $listId . '.filter_order_Dir', 'filter_order_Dir', 'DESC', 'cmd'));
+		$this->setState('list.limit', $app->getUserStateFromRequest('com_code.tracker.' . $listId . '.limit', 'limit', $app->get('list_limit'), 'int'));
 	}
 
 	/**
@@ -244,31 +247,32 @@ class CodeModelTracker extends JModelItem
 	 * different modules that might need different sets of data or different
 	 * ordering requirements.
 	 *
-	 * @param	string		$id	A prefix for the store id.
+	 * @param	string  $id  A prefix for the store id.
 	 *
-	 * @return	string		A store id.
-	 * @since	1.6
+	 * @return	string  A store id.
+	 *
+	 * @since   1.6
 	 */
 	protected function getStoreId($id = '')
 	{
 		// Compile the store id.
-		$id .= ':'.$this->getState('tracker.id');
-		$id .= ':'.$this->getState('filter.access');
-		$id .= ':'.$this->getState('filter.state');
-		$id .= ':'.$this->getState('filter.tag_id');
-		$id .= ':'.$this->getState('filter.tag_id.include');
-		$id .= ':'.$this->getState('filter.submitter_id');
-		$id .= ':'.$this->getState('filter.submitter_id.include');
-		$id .= ':'.$this->getState('filter.closer_id');
-		$id .= ':'.$this->getState('filter.closer_id.include');
-		$id .= ':'.$this->getState('filter.assignee_id');
-		$id .= ':'.$this->getState('filter.assignee_id.include');
-		$id .= ':'.$this->getState('filter.date_filtering');
-		$id .= ':'.$this->getState('filter.date_field');
-		$id .= ':'.$this->getState('filter.start_date_range');
-		$id .= ':'.$this->getState('filter.end_date_range');
-		$id .= ':'.$this->getState('filter.relative_date');
-		$id .= ':'.$this->getState('filter.search');
+		$id .= ':' . $this->getState('tracker.id');
+		$id .= ':' . $this->getState('filter.access');
+		$id .= ':' . $this->getState('filter.state');
+		$id .= ':' . $this->getState('filter.tag_id');
+		$id .= ':' . $this->getState('filter.tag_id.include');
+		$id .= ':' . $this->getState('filter.submitter_id');
+		$id .= ':' . $this->getState('filter.submitter_id.include');
+		$id .= ':' . $this->getState('filter.closer_id');
+		$id .= ':' . $this->getState('filter.closer_id.include');
+		$id .= ':' . $this->getState('filter.assignee_id');
+		$id .= ':' . $this->getState('filter.assignee_id.include');
+		$id .= ':' . $this->getState('filter.date_filtering');
+		$id .= ':' . $this->getState('filter.date_field');
+		$id .= ':' . $this->getState('filter.start_date_range');
+		$id .= ':' . $this->getState('filter.end_date_range');
+		$id .= ':' . $this->getState('filter.relative_date');
+		$id .= ':' . $this->getState('filter.search');
 
 		return parent::getStoreId($id);
 	}
