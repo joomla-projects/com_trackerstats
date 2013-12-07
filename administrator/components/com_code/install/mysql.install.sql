@@ -19,8 +19,7 @@ CREATE TABLE IF NOT EXISTS `#__code_activity_types` (
   PRIMARY KEY (`activity_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-INSERT INTO `#__code_activity_types`
-(`activity_type`, `activity_title`, `activity_group`, `activity_description`, `activity_points`) VALUES
+INSERT INTO `#__code_activity_types` (`activity_type`, `activity_title`, `activity_group`, `activity_description`, `activity_points`) VALUES
 (1, 'Create Issue', 'Tracker', 'Create a new issue in tracker.', 3),
 (2, 'Comment Issue', 'Tracker', 'Add a comment to an issue.', 1),
 (3, 'Change Issue', 'Tracker', 'Change the status of an issue.', 1),

@@ -10,9 +10,6 @@
 
 defined('_JEXEC') or die;
 
-// Include dependancies.
-jimport('joomla.database.table');
-
 /**
  * Code branch table object.
  *
@@ -23,11 +20,13 @@ jimport('joomla.database.table');
 class CodeTableProject extends JTable
 {
 	/**
-	 * Contructor.
+	 * Class constructor.
 	 *
-	 * @param database A database connector object
+	 * @param	JDatabaseDriver  $db  A database connector object.
+	 *
+	 * @since	1.0
 	 */
-	public function __construct(&$db)
+	public function __construct($db)
 	{
 		parent::__construct('#__code_projects', 'project_id', $db);
 
@@ -44,7 +43,8 @@ class CodeTableProject extends JTable
 	protected function _getAssetName()
 	{
 		$k = $this->_tbl_key;
-		return 'com_code.project.'.(int) $this->$k;
+
+		return 'com_code.project.' . (int) $this->$k;
 	}
 
 	/**
@@ -61,31 +61,70 @@ class CodeTableProject extends JTable
 	/**
 	 * Get the parent asset id for the record
 	 *
-	 * @return	int
+	 * @param   JTable   $table  A JTable object for the asset parent.
+	 * @param   integer  $id     Id to look up
+	 *
+	 * @return  integer
 	 */
-	protected function _getAssetParentId()
+	protected function _getAssetParentId(JTable $table = null, $id = null)
 	{
 		// Initialise variables.
 		$assetId = null;
-		$db		= $this->getDbo();
+		$db      = $this->getDbo();
 
 		// Build the query to get the asset id for the component.
-		$query	= $db->getQuery(true);
-		$query->select('id');
-		$query->from('#__assets');
-		$query->where('name = '.$db->quote('com_code'));
+		$db->setQuery(
+			$db->getQuery(true)
+				->select('id')
+				->from('#__assets')
+				->where('name = ' . $db->quote('com_code'))
+		);
 
-		// Get the asset id from the database.
-		$db->setQuery($query);
-		if ($result = $db->loadResult()) {
+		if ($result = $db->loadResult())
+		{
 			$assetId = (int) $result;
 		}
 
 		// Return the asset id.
-		if ($assetId) {
+		if ($assetId)
+		{
 			return $assetId;
-		} else {
-			return parent::_getAssetParentId();
+		}
+		else
+		{
+			return parent::_getAssetParentId($table, $id);
+		}
+	}
+
+	/**
+	 * Method to load a data object by its legacy ID
+	 *
+	 * @param   integer  $legacyId  The tracker ID to load
+	 *
+	 * @return  boolean  True on success
+	 */
+	public function loadByLegacyId($legacyId)
+	{
+		// Load the database object
+		$db = $this->getDbo();
+
+		// Look up the tracker ID based on the legacy ID.
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($this->_tbl_key)
+				->from($this->_tbl)
+				->where('jc_project_id = ' . (int) $legacyId)
+		);
+
+		$issueId = (int) $db->loadResult();
+
+		if ($issueId)
+		{
+			return $this->load($issueId);
+		}
+		else
+		{
+			return false;
 		}
 	}
 }

@@ -232,4 +232,41 @@ class CodeTableTracker extends JTable
 			return parent::_getAssetParentId($table, $id);
 		}
 	}
+
+	/**
+	 * Overrides JTable::store
+	 *
+	 * @param   boolean  $updateNulls  True to update fields even if they are null.
+	 *
+	 * @return  boolean  True on success.
+	 *
+	 * @since   3.0
+	 */
+	public function store($updateNulls = false)
+	{
+		// Verify that a project ID is set
+		if ($this->project_id === null)
+		{
+			// Get the project ID from the projects table if the jc_project_id is set
+			if ($this->jc_project_id !== null)
+			{
+				$db = $this->getDbo();
+
+				$db->setQuery(
+					$db->getQuery(true)
+						->select($db->quoteName('project_id'))
+						->from($db->quoteName('#__code_projects'))
+						->where($db->quoteName('jc_project_id') . ' = ' . $this->jc_project_id)
+				);
+
+				if ($result = $db->loadResult())
+				{
+					$this->project_id = (int) $result;
+				}
+			}
+		}
+
+		// Finish processing
+		return parent::store($updateNulls);
+	}
 }

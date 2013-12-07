@@ -62,6 +62,12 @@ class CodeModelTrackerSync extends JModelLegacy
 	protected $processingTotals = array('issues' => 0, 'changes' => 0, 'files' => 0, 'messages' => 0, 'users' => 0);
 
 	/**
+	 * @var    array  Array of trackers to snapshot
+	 * @since  1.0
+	 */
+	protected $syncTrackers = array();
+
+	/**
 	 * Fixes file data for issues
 	 *
 	 * @return  void
@@ -231,11 +237,9 @@ class CodeModelTrackerSync extends JModelLegacy
 	/**
 	 * Gets counts of issues in tracker by status code and store in #__code_tracker_snapshots table by date
 	 *
-	 * @param   integer  $tracker_id  Tracker ID to record the snapshot for
-	 *
 	 * @return  void
 	 */
-	public function doStatusSnapshot($tracker_id)
+	public function doStatusSnapshot()
 	{
 		// First get snapshot
 		$cutoffDate = new DateTime;
@@ -244,19 +248,22 @@ class CodeModelTrackerSync extends JModelLegacy
 		$today = new DateTime;
 		$db    = $this->getDbo();
 
-		$db->setQuery(
-			$db->getQuery(true)
-				->select('status_name, COUNT(*) as num_issues')
-				->from($db->quoteName('#__code_tracker_issues'))
-				->where($db->quoteName('tracker_id') . ' = ' . (int) $tracker_id)
-				->where('DATE(modified_date) > ' . $db->quote($cutoffDate->format('Y-m-d')))
-				->where('DATE(close_date) = ' . $db->quote('0000-00-00'))
-				->group('status_name')
-		);
+		foreach ($this->syncTrackers as $tracker_id)
+		{
+			$db->setQuery(
+				$db->getQuery(true)
+					->select('status_name, COUNT(*) as num_issues')
+					->from($db->quoteName('#__code_tracker_issues'))
+					->where($db->quoteName('tracker_id') . ' = ' . (int) $tracker_id)
+					->where('DATE(modified_date) > ' . $db->quote($cutoffDate->format('Y-m-d')))
+					->where('DATE(close_date) = ' . $db->quote('0000-00-00'))
+					->group('status_name')
+			);
 
-		$dbArray = $db->loadObjectList();
-		$jsonString = json_encode($dbArray);
-		$this->writeSnapshot($tracker_id, $today, $jsonString);
+			$dbArray = $db->loadObjectList();
+			$jsonString = json_encode($dbArray);
+			$this->writeSnapshot($tracker_id, $today, $jsonString);
+		}
 	}
 
 	/**
@@ -345,6 +352,9 @@ class CodeModelTrackerSync extends JModelLegacy
 		$this->gforgeLegacy = new GForgeLegacy('http://joomlacode.org/gf');
 		$this->gforgeLegacy->login($username, $password);
 
+		// Ensure we have project data in the database
+		$this->checkProject($project);
+
 		// Get the tracker data from the SOAP interface.
 		$trackers = $this->gforge->getProjectTrackers($project);
 
@@ -368,9 +378,48 @@ class CodeModelTrackerSync extends JModelLegacy
 			}
 		}
 
-		$this->doStatusSnapshot(3);
+		$this->doStatusSnapshot();
 
 		return true;
+	}
+
+	/**
+	 * Check to verify the given project exists
+	 *
+	 * @param   integer  $id  Project ID
+	 *
+	 * @return  boolean
+	 */
+	private function checkProject($id)
+	{
+		// Get a tracker table object.
+		$table = $this->getTable('Project', 'CodeTable');
+
+		// Load any existing data by legacy id.
+		$table->loadByLegacyId($id);
+
+		// If the tracker ID is null, assume we're inserting a new record
+		if ($table->project_id === null)
+		{
+			// Retrieve the project data
+			$project = $this->gforge->getProjectById($id);
+
+			$data = array(
+				'title' => $project->project_name,
+				'description' => $project->description,
+				'jc_project_id' => $project->project_id
+			);
+
+			// Bind the data to the project object.
+			$table->bind($data);
+
+			// Attempt to store the project data.
+			if (!$table->store())
+			{
+				$this->setError($table->getError());
+				return false;
+			}
+		}
 	}
 
 	/**
@@ -388,11 +437,22 @@ class CodeModelTrackerSync extends JModelLegacy
 		// Load any existing data by legacy id.
 		$table->loadByLegacyId($tracker->tracker_id);
 
+		$data = array();
+
+		// If the tracker ID is null, assume we're inserting a new record
+		if ($table->tracker_id === null)
+		{
+			$data = array(
+				'jc_tracker_id' => $tracker->tracker_id,
+				'jc_project_id' => $tracker->project_id,
+				'title' => $tracker->tracker_name,
+				'description' => $tracker->description
+			);
+		}
+
 		// Populate the appropriate fields from the server data object.
-		$data = array(
-			'item_count'      => $tracker->item_total,
-			'open_item_count' => $tracker->open_count,
-		);
+		$data['item_count'] = $tracker->item_total;
+		$data['open_item_count'] = $tracker->open_count;
 
 		// Bind the data to the tracker object.
 		$table->bind($data);
@@ -446,6 +506,8 @@ class CodeModelTrackerSync extends JModelLegacy
 		$logMessage .= '  Files: ' . $this->processingTotals['files'] . ';  Messages: ' . $this->processingTotals['messages'] . ' ;';
 		$logMessage .= '  Users: ' . $this->processingTotals['users'] . ' ;';
 		JLog::add($logMessage);
+
+		$this->syncTrackers[] = $tracker->tracker_id;
 
 		return true;
 	}

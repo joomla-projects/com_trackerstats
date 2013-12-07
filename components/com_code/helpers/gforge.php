@@ -233,6 +233,30 @@ class GForge
 	}
 
 	/**
+	 * Method to get a project object by id.
+	 *
+	 * @param   integer  $id  The name of the project for which to get the data object.
+	 *
+	 * @return  mixed   Boolean false on failure, project data object on success.
+	 *
+	 * @since   1.0
+	 */
+	public function getProjectById($id)
+	{
+		try {
+			// Attempt to get the project data object by the ID.
+			$project = $this->client->getProject($this->sessionhash, $id);
+
+			return $project;
+		}
+		catch (SoapFault $e)
+		{
+			echo 'Unable to get project '.$name.': '.$e->faultstring."\n";
+			return false;
+		}
+	}
+
+	/**
 	 * Method to get the project trackers by project name or id.
 	 *
 	 * @param   mixed  $project  Either the project name or numeric id for the project to get a list
