@@ -387,7 +387,7 @@ class CodeModelTrackerSync extends JModelLegacy
 		}
 		catch (RuntimeException $e)
 		{
-			JLog::add('An error occurred during the sync: ' . $e->getMessage(), JLog::ERROR);
+			JLog::add('An error occurred during the sync: ' . $e->getMessage(), JLog::INFO);
 
 			return false;
 		}
