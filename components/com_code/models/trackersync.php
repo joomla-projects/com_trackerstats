@@ -344,41 +344,49 @@ class CodeModelTrackerSync extends JModelLegacy
 		$password = JFactory::getConfig()->get('gforgePassword');
 		$project  = 5; // Joomla project id.
 
-		// Connect to the main SOAP interface.
-		$this->gforge = new GForge('http://joomlacode.org/gf');
-		$this->gforge->login($username, $password);
-
-		// Connect to the legacy SOAP interface.
-		$this->gforgeLegacy = new GForgeLegacy('http://joomlacode.org/gf');
-		$this->gforgeLegacy->login($username, $password);
-
-		// Ensure we have project data in the database
-		$this->checkProject($project);
-
-		// Get the tracker data from the SOAP interface.
-		$trackers = $this->gforge->getProjectTrackers($project);
-
-		if (empty($trackers))
+		// Wrap the processing in try/catch to log errors
+		try
 		{
-			$this->setError('Unable to get trackers from the server.');
-			return false;
-		}
+			// Connect to the main SOAP interface.
+			$this->gforge = new GForge('http://joomlacode.org/gf');
+			$this->gforge->login($username, $password);
 
-		// Sync each tracker.
-		$trackers = array_reverse($trackers);
+			// Connect to the legacy SOAP interface.
+			$this->gforgeLegacy = new GForgeLegacy('http://joomlacode.org/gf');
+			$this->gforgeLegacy->login($username, $password);
 
-		foreach ($trackers as $tracker)
-		{
-			$currentTrackers = array(8103, 8549, 11410);
+			// Ensure we have project data in the database
+			$this->checkProject($project);
 
-			if (in_array($tracker->tracker_id, $currentTrackers))
+			// Get the tracker data from the SOAP interface.
+			$trackers = $this->gforge->getProjectTrackers($project);
+
+			if (empty($trackers))
 			{
-				$this->populateTrackerFields($tracker->tracker_id);
-				$this->syncTracker($tracker);
+				$this->setError('Unable to get trackers from the server.');
+				return false;
 			}
-		}
 
-		$this->doStatusSnapshot();
+			// Sync each tracker.
+			$trackers = array_reverse($trackers);
+
+			foreach ($trackers as $tracker)
+			{
+				$currentTrackers = array(8103, 8549, 11410);
+
+				if (in_array($tracker->tracker_id, $currentTrackers))
+				{
+					$this->populateTrackerFields($tracker->tracker_id);
+					$this->syncTracker($tracker);
+				}
+			}
+
+			$this->doStatusSnapshot();
+		}
+		catch (RuntimeException $e)
+		{
+			JLog::add('An error occurred during the sync: ' . $e->getMessage(), JLog::ERROR);
+		}
 
 		return true;
 	}

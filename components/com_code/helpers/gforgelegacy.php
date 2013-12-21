@@ -12,9 +12,8 @@ defined('_JEXEC') or die;
 /**
  * Connector class to a GForge Advanced Server Legacy SOAP API.
  *
- * @see      http://joomlacode.org/gf/xmlcompatibility/soap/
- *
  * @package  Joomla.Code
+ * @see      http://joomlacode.org/gf/xmlcompatibility/soap/
  * @since    1.0
  */
 class GForgeLegacy
@@ -38,40 +37,45 @@ class GForgeLegacy
 	protected $username;
 
 	/**
+	 * @var    string  The URI for the API
+	 * @since  1.0
+	 */
+	protected $apiUri = '/xmlcompatibility/soap/?wsdl';
+
+	/**
 	 * Object constructor.  Creates the connection to the GForge site instance.
 	 *
 	 * @param   string  $site     The URL to the gforge instance.
 	 * @param   array   $options  The SOAP options for the connection.
 	 *
-	 * @return  void
-	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	public function __construct($site, $options = array())
 	{
 		// Attempt to connect to the SOAP gateway.
-		$this->client = new SoapClient($site.'/xmlcompatibility/soap/?wsdl', $options);
+		$this->client = new SoapClient($site . $this->apiUri, $options);
 
 		// Check for an error.
-		if (!$this->client) {
-			exit('Unable to connect to GForge instance at '.$site);
+		if (!$this->client)
+		{
+			throw new RuntimeException('Unable to connect to GForge instance at ' . $site);
 		}
 	}
 
 	/**
 	 * Object destructor.  Signs out and closes the connection.
 	 *
-	 * @return  void
-	 *
 	 * @since   1.0
 	 */
 	public function __destruct()
 	{
 		// Check to see if the connection is live.
-		if ($this->client) {
-
+		if ($this->client)
+		{
 			// Check to see if we are signed in.
-			if ($this->sessionhash) {
+			if ($this->sessionhash)
+			{
 				$this->logout();
 			}
 
@@ -89,10 +93,12 @@ class GForgeLegacy
 	 * @return	boolean  True on success.
 	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	public function login($username, $password)
 	{
-		try {
+		try
+		{
 			// Attempt to sign into the account and get the session hash.
 			$sessionhash = $this->client->login($username, $password);
 
@@ -104,8 +110,7 @@ class GForgeLegacy
 		}
 		catch (SoapFault $e)
 		{
-			die ('Login Failed: '.$e->faultstring);
-			return false;
+			throw new RuntimeException('Login Failed: ' . $e->faultstring);
 		}
 	}
 
@@ -115,10 +120,12 @@ class GForgeLegacy
 	 * @return	boolean  True on success.
 	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	public function logout()
 	{
-		try {
+		try
+		{
 			// Attempt to sign out.
 			$this->client->logout($this->sessionhash);
 			$this->sessionhash = null;
@@ -128,8 +135,7 @@ class GForgeLegacy
 		}
 		catch (SoapFault $e)
 		{
-			echo 'Logout Failed: '.$e->faultstring."\n";
-			return false;
+			throw new RuntimeException('Logout Failed: ' . $e->faultstring);
 		}
 	}
 
@@ -139,13 +145,15 @@ class GForgeLegacy
 	 * @param   string  $username  The optional username to get user data for, defaults to the user
 	 *                             signed into the current session.
 	 *
-	 * @return  mixed   Boolean false on failure, user data object on success.
+	 * @return  object   User data object on success.
 	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	public function getUser($username = null)
 	{
-		try {
+		try
+		{
 			// Attempt to get the user object by the username or "unix name" in GForge speak.
 			$user = $this->client->getUserByUnixName($this->sessionhash, $username ? $username : $this->username);
 
@@ -153,25 +161,26 @@ class GForgeLegacy
 		}
 		catch (SoapFault $e)
 		{
-			echo 'Failed to get user '.($username ? $username : $this->username).': '.$e->faultstring."\n";
-			return false;
+			throw new RuntimeException('Failed to get user ' . ($username ? $username : $this->username) . ': ' . $e->faultstring);
 		}
 	}
 
 	/**
 	 * Method to get an array of tracker file changes by id.
 	 *
-	 * @param   int     $itemId     The tracker item id for which to get the files array.
-	 * @param   int     $trackerId  The tracker id in which the item resides.
-	 * @param   int     $projectId  The project id in which the tracker resides.
+	 * @param   integer  $itemId     The tracker item id for which to get the files array.
+	 * @param   integer  $trackerId  The tracker id in which the item resides.
+	 * @param   integer  $projectId  The project id in which the tracker resides.
 	 *
-	 * @return  mixed   Boolean false on failure, tracker item files data array on success.
+	 * @return  array  Tracker item files data array on success.
 	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	public function getTrackerItemFiles($itemId, $trackerId, $projectId)
 	{
-		try {
+		try
+		{
 			// Attempt to get the files data array by the tracker item id.
 			$changes = $this->client->getArtifactFiles($this->sessionhash, $projectId, $trackerId, $itemId);
 
@@ -179,26 +188,27 @@ class GForgeLegacy
 		}
 		catch (SoapFault $e)
 		{
-			echo 'Unable to get files for tracker item '.$itemId.': '.$e->faultstring."\n";
-			return false;
+			throw new RuntimeException('Unable to get files for tracker item ' . $itemId . ': ' . $e->faultstring);
 		}
 	}
 
 	/**
 	 * Method to get a file data object by id.
 	 *
-	 * @param   int     $fileId     The file id for which to get the files array.
-	 * @param   int     $itemId     The tracker item id to which the file is attached.
-	 * @param   int     $trackerId  The tracker id in which the item resides.
-	 * @param   int     $projectId  The project id in which the tracker resides.
+	 * @param   integer  $fileId     The file id for which to get the files array.
+	 * @param   integer  $itemId     The tracker item id to which the file is attached.
+	 * @param   integer  $trackerId  The tracker id in which the item resides.
+	 * @param   integer  $projectId  The project id in which the tracker resides.
 	 *
-	 * @return  mixed   Boolean false on failure, tracker item files data array on success.
+	 * @return  array  Tracker item files data array on success.
 	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	public function getTrackerItemFile($fileId, $itemId, $trackerId, $projectId)
 	{
-		try {
+		try
+		{
 			// Attempt to get the file data object by the file id.
 			$changes = $this->client->getArtifactFileData($this->sessionhash, $projectId, $trackerId, $itemId, $fileId);
 
@@ -206,21 +216,22 @@ class GForgeLegacy
 		}
 		catch (SoapFault $e)
 		{
-			echo 'Unable to get  '.$fileId.': '.$e->faultstring."\n";
-			return false;
+			throw new RuntimeException('Unable to get  ' . $fileId . ': ' . $e->faultstring);
 		}
 	}
 
 	/**
 	 * Method to get a list of client functions.
 	 *
-	 * @return  mixed   Boolean false on failure, array of functions on success.
+	 * @return  array  Functions array on success.
 	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	protected function getClientFunctions()
 	{
-		try {
+		try
+		{
 			// Attempt to get the client functions.
 			$functions = $this->client->__getFunctions();
 
@@ -228,21 +239,22 @@ class GForgeLegacy
 		}
 		catch (SoapFault $e)
 		{
-			echo 'Failed to get functions: '.$e->faultstring."\n";
-			return false;
+			throw new RuntimeException('Failed to get functions: ' . $e->faultstring);
 		}
 	}
 
 	/**
 	 * Method to get a list of client types.
 	 *
-	 * @return  mixed   Boolean false on failure, array of types on success.
+	 * @return  array  Array of types on success.
 	 *
 	 * @since   1.0
+	 * @throws  RuntimeException
 	 */
 	protected function getClientTypes()
 	{
-		try {
+		try
+		{
 			// Attempt to get the client types.
 			$functions = $this->client->__getTypes();
 
@@ -250,8 +262,7 @@ class GForgeLegacy
 		}
 		catch (SoapFault $e)
 		{
-			echo 'Failed to get types: '.$e->faultstring."\n";
-			return false;
+			throw new RuntimeException('Failed to get types: ' . $e->faultstring);
 		}
 	}
 }
