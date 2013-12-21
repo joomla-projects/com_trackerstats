@@ -59,7 +59,7 @@ class CodeModelTrackerSync extends JModelLegacy
 	 * @var    array  Associative array of processing statistics
 	 * @since  1.0
 	 */
-	protected $processingTotals = array('issues' => 0, 'changes' => 0, 'files' => 0, 'messages' => 0, 'users' => 0);
+	protected $processingTotals = array();
 
 	/**
 	 * @var    array  Array of trackers to snapshot
@@ -443,6 +443,9 @@ class CodeModelTrackerSync extends JModelLegacy
 	 */
 	private function syncTracker($tracker)
 	{
+		// Prepare the processing totals for this tracker
+		$this->processingTotals = array('issues' => 0, 'changes' => 0, 'files' => 0, 'messages' => 0, 'users' => 0);
+
 		// Get a tracker table object.
 		$table = $this->getTable('Tracker', 'CodeTable');
 
