@@ -519,7 +519,7 @@ class CodeModelTrackerSync extends JModelLegacy
 		$logMessage .= '  Users: ' . $this->processingTotals['users'] . ' ;';
 		JLog::add($logMessage);
 
-		$this->syncTrackers[] = $tracker->tracker_id;
+		$this->syncTrackers[] = $table->tracker_id;
 
 		return true;
 	}
