@@ -93,7 +93,12 @@ class Code extends JApplicationCli
 					$model = JModelLegacy::getInstance('TrackerSync', 'CodeModel');
 
 					// Run the syncronization routine.
-					$model->$command();
+					$result = $model->$command();
+
+					if ($result === false)
+					{
+						$this->out('The command did not complete successfully, please check the log for details.');
+					}
 
 					break;
 

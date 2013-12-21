@@ -89,6 +89,8 @@ class CodeModelTrackerSync extends JModelLegacy
 		{
 			$this->fixFilesForIssue($issue);
 		}
+
+		return true;
 	}
 
 	/**
@@ -386,6 +388,8 @@ class CodeModelTrackerSync extends JModelLegacy
 		catch (RuntimeException $e)
 		{
 			JLog::add('An error occurred during the sync: ' . $e->getMessage(), JLog::ERROR);
+
+			return false;
 		}
 
 		return true;
