@@ -3,7 +3,6 @@
 	<fieldset
 		name="component"
 		label="COM_CODE_COMPONENT_CONFIG">
-	</fieldset>
 		<field
 			name="email_error"
 			type="text"
@@ -11,6 +10,7 @@
 			description="COM_CODE_CONFIG_EMAIL_ERROR_DESC"
 			default=""
 		/>
+	</fieldset>
 	<fieldset
 		name="permissions"
 		label="JCONFIG_PERMISSIONS_LABEL"
