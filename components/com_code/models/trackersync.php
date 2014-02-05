@@ -68,6 +68,12 @@ class CodeModelTrackerSync extends JModelLegacy
 	protected $syncTrackers = array();
 
 	/**
+	 * @var    JDate  Date object with the time the script started
+	 * @since  3.0
+	 */
+	protected $startTime;
+
+	/**
 	 * Fixes file data for issues
 	 *
 	 * @return  void
@@ -341,6 +347,9 @@ class CodeModelTrackerSync extends JModelLegacy
 		JLog::addLogger($options, JLog::INFO);
 		JLog::add('Starting the GForge Sync', JLog::INFO);
 
+		// Log the start time
+		$this->startTime = JFactory::getDate();
+
 		// Initialize variables.
 		$username = JFactory::getConfig()->get('gforgeLogin');
 		$password = JFactory::getConfig()->get('gforgePassword');
@@ -389,10 +398,53 @@ class CodeModelTrackerSync extends JModelLegacy
 		{
 			JLog::add('An error occurred during the sync: ' . $e->getMessage(), JLog::INFO);
 
+			$this->sendEmail();
+
 			return false;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Send e-mail notification to users specified in the component config
+	 *
+	 * @return  void
+	 *
+	 * @since   3.0
+	 */
+	private function sendEmail()
+	{
+		// Get data
+		$config    = JFactory::getConfig();
+		$mailer    = JFactory::getMailer();
+		$params    = JComponentHelper::getParams('com_code');
+		$addresses = $params->get('email_error', '');
+
+		// Build the message
+		$message = sprintf(
+			'The sync cron job on developer.joomla.org started at %s failed to complete properly.  Please check the logs for further details.',
+			(string) $this->startTime
+		);
+
+		// Make sure we have e-mail addresses in the config
+		if (strlen($addresses) < 2)
+		{
+			return;
+		}
+
+		$addresses = explode(',', $addresses);
+
+		// Send a message to each user
+		foreach ($addresses as $address)
+		{
+			if (!$mailer->sendMail($config->get('mailfrom'), $config->get('fromname'), $address, 'JoomlaCode Sync Error', $message))
+			{
+				JLog::add(sprintf('An error occurred sending the notification e-mail to %s.  Error: %s', $address, $e->getMessage()), JLog::INFO);
+
+				continue;
+			}
+		}
 	}
 
 	/**
