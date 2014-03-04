@@ -63,7 +63,11 @@ class TrackerstatsModelReleasenotes extends JModelList
 			'((DATE(close_date) BETWEEN ' . $db->q(substr($this->state->params->get('start_date'), 0, 10))
 			. ' AND ' . $db->q(substr($this->state->params->get('end_date'), 0, 10)) . ') OR (i.jc_issue_id IN (' . implode(',', $includeArray) . ')))'
 		);
-		$query->where("status_name LIKE '%Fixed in SVN%'");
+
+		// Filter on merged items from the issue and feature trackers
+		$query->where('(' . $db->qn('status_name') . ' LIKE ' . $db->q('%Fixed in SVN%') . ' OR ' . $db->qn('status_name') . ' LIKE ' . $db->q('%Implemented in trunk%') . ')');
+
+		// Exclude explicitly listed trackers
 		$query->where('i.jc_issue_id NOT IN (' . implode(',', $excludeArray) . ')');
 
 		if ($this->state->get('list.filter'))
