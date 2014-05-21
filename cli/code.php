@@ -29,6 +29,7 @@ require_once JPATH_LIBRARIES . '/import.legacy.php';
 require_once JPATH_LIBRARIES . '/cms.php';
 
 ini_set('display_errors', 1);
+ini_set('error_reporting', 32767);
 
 // Set error handling levels
 JError::setErrorHandling(E_ERROR, 'echo');

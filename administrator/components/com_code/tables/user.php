@@ -328,18 +328,22 @@ class CodeTableUser extends JTable
 		// Set the registration timestamp if necessary.
 		if ($this->registerDate == null)
 		{
-			$now = JFactory::getDate();
-			$this->registerDate = $now->toMySQL();
+			$this->registerDate = JFactory::getDate()->toSql();
 		}
 
 		// Ensure the login name is not already being used.
-		$this->_db->setQuery(
-			'SELECT id' .
-			' FROM #__users' .
-			' WHERE username = '.$this->_db->quote($this->username) .
-			' AND id <> '.(int) $this->id
+		$db = $this->getDbo();
+
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName('id'))
+				->from($db->quoteName('#__users'))
+				->where($db->quoteName('username') . ' = ' . $db->quote($this->username))
+				->where($db->quoteName('id') . ' <> ' . (int) $id)
 		);
+
 		$xid = intval($this->_db->loadResult());
+
 		if ($xid && $xid != intval( $this->id ))
 		{
 			$this->setError(JText::_('WARNREG_INUSE'));
@@ -369,20 +373,33 @@ class CodeTableUser extends JTable
 		return true;
 	}
 
+	/**
+	 * Method to load a data object by its legacy ID
+	 *
+	 * @param   integer  $legacyId  The tracker ID to load
+	 *
+	 * @return  boolean  True on success
+	 */
 	public function loadByLegacyId($legacyId)
 	{
-		// Look up the user id based on the legacy id.
-		$this->_db->setQuery(
-			'SELECT user_id' .
-			' FROM #__code_users' .
-			' WHERE jc_user_id = '.(int) $legacyId
-		);
-		$userId = (int) $this->_db->loadResult();
+		$db = $this->getDbo();
 
-		if ($userId) {
-			return $this->load($userId);
+		// Look up the user id based on the legacy id.
+		$db->setQuery(
+			$db->getQuery(true)
+				->select($db->quoteName('user_id'))
+				->from($db->quoteName('#__code_users'))
+				->where($db->quoteName('jc_user_id') . ' <> ' . (int) $legacyId)
+		);
+
+		$userId = (int) $db->loadResult();
+
+		if ($userId)
+		{
+			return $this->legacyLoad($userId);
 		}
-		else {
+		else
+		{
 			return false;
 		}
 	}
@@ -410,7 +427,7 @@ class CodeTableUser extends JTable
 
 		if ($userId)
 		{
-			return $this->load($userId);
+			return $this->legacyLoad($userId);
 		}
 		else
 		{
@@ -421,22 +438,27 @@ class CodeTableUser extends JTable
 	/**
 	 * Method to load the user data from the database and bind it to the object.
 	 *
-	 * @param	integer	The primary key of the user record to load.
-	 * @return	boolean	True on success.
-	 * @since	1.0
-	 * @todo    Strict standards error
+	 * @param   integer  $userId  The primary key of the user record to load.
+	 *
+	 * @return  boolean  True on success.
+	 *
+	 * @since   1.0
 	 */
-	function load($userId = null)
+	public function legacyLoad($userId = null)
 	{
 		// Get the primary key.
-		$k = $this->_tbl_key;
-		if ($userId !== null) {
+		$k = $this->getKeyName();
+
+		if ($userId !== null)
+		{
 			$this->$k = $userId;
 		}
+
 		$userId = $this->$k;
 
 		// If no primary key is set return false.
-		if ($userId === null) {
+		if ($userId === null)
+		{
 			return false;
 		}
 
@@ -444,37 +466,52 @@ class CodeTableUser extends JTable
 		$this->reset();
 
 		// Load the core data fields.
-		$this->_db->setQuery(
-			'SELECT *' .
-			' FROM '.$this->_tbl .
-			' WHERE '.$this->_tbl_key.' = '.(int) $userId
+		$db = $this->getDbo();
+
+		$db->setQuery(
+            $db->getQuery(true)
+				->select('*')
+				->from($db->quoteName($this->getTableName()))
+				->where($db->quoteName($this->getKeyName()) . ' = ' . (int) $userId)
 		);
-		if ($result = $this->_db->loadAssoc())
+
+		try
 		{
-			if ($this->bind($result))
+			$result = $db->loadAssoc();
+		}
+		catch (RuntimeException $e)
+		{
+			$this->setError($e->getMessage());
+
+			return false;
+		}
+
+		if ($this->bind($result))
+		{
+			// Load the extended data fields.
+			$db->setQuery(
+	            $db->getQuery(true)
+					->select('*')
+					->from($db->quoteName('#__code_users'))
+					->where($db->quoteName('user_id') . ' = ' . (int) $userId)
+			);
+
+
+			try
 			{
-				// Load the extended data fields.
-				$this->_db->setQuery(
-					'SELECT *' .
-					' FROM #__code_users' .
-					' WHERE user_id = '.(int) $userId
-				);
-				if ($result = $this->_db->loadAssoc()) {
-					return $this->bind($result);
-				}
-				else
-				{
-					$this->setError($this->_db->getErrorMsg());
-					return false;
-				}
+				$result = $db->loadAssoc();
+
+				return $this->bind($result);
 			}
-			else {
+			catch (RuntimeException $e)
+			{
+				$this->setError($e->getMessage());
+
 				return false;
 			}
 		}
 		else
 		{
-			$this->setError($this->_db->getErrorMsg());
 			return false;
 		}
 	}
