@@ -243,6 +243,31 @@ class GForge
 	}
 
 	/**
+	 * Method to get a project members by project id.
+	 *
+	 * @param   integer  $projectId  The project id.
+	 *
+	 * @return  array Project members data array on success.
+	 *
+	 * @since   1.0
+	 * @throws  RuntimeException
+	 */
+	public function getProjectMembers($projectId)
+	{
+		try
+		{
+			$members = $this->client->getProjectMembers($this->sessionhash, $projectId);
+
+			return $members;
+		}
+		catch (SoapFault $e)
+		{
+			throw new RuntimeException('Unable to get members : ' . $e->faultstring);
+		}
+	}
+	
+
+	/**
 	 * Method to get a project object by id.
 	 *
 	 * @param   integer  $id  The name of the project for which to get the data object.
@@ -264,6 +289,32 @@ class GForge
 		catch (SoapFault $e)
 		{
 			throw new RuntimeException('Unable to get project ' . $name . ': ' . $e->faultstring);
+		}
+	}
+
+	/**
+	 * Method to get an array of file Systems by section and ref_id
+	 * Section and ref_id are parts of download url : download/{section}/{ref_id}
+	 *
+	 * @param   string   $section  The section name.
+	 * @param   integer  $fileId  The file id.
+	 *
+	 * @return  array File systems data array on success.
+	 *
+	 * @since   1.0
+	 * @throws  RuntimeException
+	 */
+	public function getFilesystems($section, $refId)
+	{
+		try
+		{
+			$systems = $this->client->getFilesystems($this->sessionhash, $section, $refId);
+
+			return $systems;
+		}
+		catch (SoapFault $e)
+		{
+			throw new RuntimeException('Unable to get file systems for section ' . $section . ' and ref id ' . $refId . ' : ' . $e->faultstring);
 		}
 	}
 
@@ -498,6 +549,126 @@ class GForge
 		catch (SoapFault $e)
 		{
 			throw new RuntimeException('Unable to get messages for tracker item ' . $itemId . ': ' . $e->faultstring);
+		}
+	}
+
+	/**
+	 * Method to get an array of Docman folders by project Id
+	 *
+	 * @param   integer  $projectId  The project id.
+	 *
+	 * @return  array Docman folders data array on success.
+	 *
+	 * @since   1.0
+	 * @throws  RuntimeException
+	 */
+	public function getDocmanFolders($projectId)
+	{
+		try
+		{
+			$folders = $this->client->getDocmanFolders($this->sessionhash, $projectId);
+
+			return $folders;
+		}
+		catch (SoapFault $e)
+		{
+			throw new RuntimeException('Unable to get folders for project id ' . $projectId . ': ' . $e->faultstring);
+		}
+	}
+
+	/**
+	 * Method to get an array of Docman folder files by folder Id
+	 *
+	 * @param   integer  $folderId  The folder id.
+	 *
+	 * @return  array Folder files data array on success.
+	 *
+	 * @since   1.0
+	 * @throws  RuntimeException
+	 */
+	public function getDocmanFiles($folderId)
+	{
+		try
+		{
+			$files = $this->client->getDocmanFiles($this->sessionhash, $folderId);
+
+			return $files;
+		}
+		catch (SoapFault $e)
+		{
+			throw new RuntimeException('Unable to get files for folder id ' . $folderId . ': ' . $e->faultstring);
+		}
+	}
+
+	/**
+	 * Method to get an array of file Versions by file Id
+	 *
+	 * @param   integer  $fileId  The file id.
+	 *
+	 * @return  array File versions data array on success.
+	 *
+	 * @since   1.0
+	 * @throws  RuntimeException
+	 */
+	public function getDocmanFileVersions($fileId)
+	{
+		try
+		{
+			$versions = $this->client->getDocmanFileVersions($this->sessionhash, $fileId);
+
+			return $versions;
+		}
+		catch (SoapFault $e)
+		{
+			throw new RuntimeException('Unable to get versions for file id ' . $fileId . ': ' . $e->faultstring);
+		}
+	}
+
+	/**
+	 * Method to get an array of forum Threads by forum Id
+	 *
+	 * @param   integer  $forumId  The forum id for.
+	 *
+	 * @return  array  Forum threads data array on success.
+	 *
+	 * @since   1.0
+	 * @throws  RuntimeException
+	 */
+	public function getForumThreads($forumId)
+	{
+		try
+		{
+			$threads = $this->client->getForumThreads($this->sessionhash, $forumId);
+
+			return $threads;
+		}
+		catch (SoapFault $e)
+		{
+			throw new RuntimeException('Unable to get threads for forum id ' . $forumId . ': ' . $e->faultstring);
+		}
+	}
+
+	/**
+	 * Method to get an array of thread messages by thread Id
+	 *
+	 * @param   integer  $threadId  The forum thread id.
+	 *
+	 * @return  array  Thread messages data array on success.
+	 *
+	 * @since   1.0
+	 * @throws  RuntimeException
+	 */
+	public function getForumMessages($threadId)
+	{
+		try
+		{
+			$messages = $this->client->getForumMessages($this->sessionhash, $threadId);
+
+			return $messages;
+		}
+		catch (SoapFault $e)
+		{
+			throw new RuntimeException('Unable to get messages for thread id ' . $threadId . ': ' . $e->faultstring);
 		}
 	}
 
