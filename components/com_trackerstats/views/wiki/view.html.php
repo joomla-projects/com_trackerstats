@@ -11,14 +11,19 @@ defined('_JEXEC') or die;
 
 /**
  * HTML View class for the wiki activity bar chart.
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 class TrackerstatsViewWiki extends JViewLegacy
 {
-	function display($tpl = null)
+	/**
+	 * Execute and display a template script.
+	 *
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @see     JViewLegacy::loadTemplate()
+	 */
+	public function display($tpl = null)
 	{
 		$app    = JFactory::getApplication();
 		$params = $app->getParams();
@@ -40,7 +45,6 @@ class TrackerstatsViewWiki extends JViewLegacy
 	{
 		$app     = JFactory::getApplication();
 		$menu    = $app->getMenu()->getActive();
-		$pathway = $app->getPathway();
 
 		if ($menu)
 		{

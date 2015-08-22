@@ -3,7 +3,7 @@
  * @package     Joomla.BugSquad
  * @subpackage  com_trackerstats
  *
- * @copyright   Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2015 Open Source Matters, Inc. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
@@ -11,28 +11,25 @@ defined('_JEXEC') or die;
 
 /**
  * JSON controller for Trackerstats -- Returns data array for rendering wiki activity bar charts
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 class TrackerstatsControllerWiki extends JControllerLegacy
 {
 	/**
-	 * Method to display bar chart data
+	 * Method to display a view.
 	 *
-	 * @return  void
+	 * @param	boolean  $cachable   If true, the view output will be cached
+	 * @param	array    $urlparams  An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
 	 *
-	 * @since   2.5
+	 * @return	$this
 	 */
-	public function display($cachable = true, $urlparams = false)
+	public function display($cachable = false, $urlparams = [])
 	{
 		// JSON URL which should be requested
 		$json_url = 'https://docs.joomla.org/api.php?action=query&list=allusers&format=json&auexcludegroup=bot&aulimit=100&auprop=editcount&auactiveusers=';
 		$ch       = curl_init($json_url);
 		$options  = array(
 			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_HTTPHEADER     => array('Content-type: application/json'),
+			CURLOPT_HTTPHEADER     => ['Content-type: application/json'],
 			CURLOPT_POSTFIELDS     => ''
 		);
 
@@ -43,8 +40,8 @@ class TrackerstatsControllerWiki extends JControllerLegacy
 		$users = json_decode(curl_exec($ch)); // Getting jSON result string
 
 		// Convert to array for processing
-		$workArray       = array();
-		$totalEditsArray = array();
+		$workArray       = [];
+		$totalEditsArray = [];
 
 		foreach ($users->query->allusers as $user)
 		{
@@ -69,8 +66,8 @@ class TrackerstatsControllerWiki extends JControllerLegacy
 			$workArray  = array_slice($workArray, $sliceStart, $maxCount);
 		}
 
-		$people = array();
-		$edits  = array();
+		$people = [];
+		$edits  = [];
 		$i      = 0;
 
 		foreach ($workArray as $k => $v)
@@ -85,10 +82,11 @@ class TrackerstatsControllerWiki extends JControllerLegacy
 		$label        = new stdClass;
 		$label->label = 'Wiki Edits';
 
-		header('Content-Type: application/json');
+		JFactory::getApplication()->mimeType = 'application/json';
 
 		// Send the response.
-		echo json_encode(array(array($edits), $people, array($label), 'Wiki Edits by Contributor in Past 30 Days'));
-		JFactory::getApplication()->close();
+		echo json_encode([[$edits], $people, [$label], 'Wiki Edits by Contributor in Past 30 Days']);
+
+		return $this;
 	}
 }

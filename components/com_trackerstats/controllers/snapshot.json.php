@@ -3,7 +3,7 @@
  * @package     Joomla.BugSquad
  * @subpackage  com_trackerstats
  *
- * @copyright   Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2015 Open Source Matters, Inc. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
@@ -11,37 +11,35 @@ defined('_JEXEC') or die;
 
 /**
  * JSON controller for Trackerstats -- Returns data array for rendering snapshot history bar charts
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 class TrackerstatsControllerSnapshot extends JControllerLegacy
 {
 	/**
-	 * Method to display bar chart data
+	 * Method to display a view.
 	 *
-	 * @return  void
+	 * @param	boolean  $cachable   If true, the view output will be cached
+	 * @param	array    $urlparams  An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
 	 *
-	 * @since   2.5
+	 * @return	$this
 	 */
-	public function display($cachable = false, $urlparams = false)
+	public function display($cachable = false, $urlparams = [])
 	{
+		/** @var TrackerstatsModelSnapshot $model */
 		$model = $this->getModel('Snapshot', 'TrackerstatsModel');
 		$items = $model->getItems();
 		$state = $model->getState();
 
 		$periodType = $state->get('list.period');
 
-		$periodTitle   = array(1 => 'Days', 2 => 'Weeks', 3 => 'Months');
-		$axisLabels    = array('None', 'Day', '7 Days', '30 Days');
+		$periodTitle   = [1 => 'Days', 2 => 'Weeks', 3 => 'Months'];
+		$axisLabels    = ['None', 'Day', '7 Days', '30 Days'];
 		$periodText    = $periodTitle[$periodType];
 		$axisLableText = $axisLabels[$periodType];
 
 		$title = "Total Open Issues by Status for Past Four $periodText";
 
-		$ticks  = array();
-		$counts = array();
+		$ticks  = [];
+		$counts = [];
 
 		foreach ($items as $item)
 		{
@@ -68,7 +66,7 @@ class TrackerstatsControllerSnapshot extends JControllerLegacy
 			$filledDataByStatus[] = $dataForOneStatus;
 		}
 
-		$data = array();
+		$data = [];
 
 		foreach ($filledDataByStatus as $dataForOneStatus)
 		{
@@ -76,23 +74,24 @@ class TrackerstatsControllerSnapshot extends JControllerLegacy
 		}
 
 		$types  = array_keys($counts);
-		$labels = array();
+		$labels = [];
 
 		foreach ($types as $type)
 		{
-			$object        = new stdClass();
+			$object        = new stdClass;
 			$object->label = $type;
 			$labels[]      = $object;
 		}
 
 		// Assemble array
-		$return = array($data, $ticks, $labels, $title);
+		$return = [$data, $ticks, $labels, $title];
 
 		// Use the correct json mime-type
-		header('Content-Type: application/json');
+		JFactory::getApplication()->mimeType = 'application/json';
 
 		// Send the response.
 		echo json_encode($return);
-		JFactory::getApplication()->close();
+
+		return $this;
 	}
 }

@@ -9,33 +9,21 @@
 
 defined('_JEXEC') or die;
 
+use Joomla\Registry\Registry;
+use Joomla\Utilities\ArrayHelper;
+
 /**
  * Gets the data for the release notes menu item.
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 class TrackerstatsModelReleasenotes extends JModelList
 {
 	/**
-	 * Category items data
+	 * Method to get a JDatabaseQuery object for retrieving the data set from a database.
 	 *
-	 * @var array
-	 */
-	protected $items = null;
-
-	/**
-	 * Method to build an SQL query to load the list data.
-	 *
-	 * @return	string	An SQL query
-	 * @since	1.6
+	 * @return  JDatabaseQuery   A JDatabaseQuery object to retrieve the data set.
 	 */
 	protected function getListQuery()
 	{
-		$user   = JFactory::getUser();
-		$groups = implode(',', $user->getAuthorisedViewLevels());
-
 		// Create a new query object.
 		$db           = $this->getDbo();
 		$query        = $db->getQuery(true);
@@ -44,8 +32,8 @@ class TrackerstatsModelReleasenotes extends JModelList
 		$excludeRaw   = $this->state->params->get('exclude_issues', null);
 		$includeArray = explode(',', $includeRaw);
 		$excludeArray = explode(',', $excludeRaw);
-		JArrayHelper::toInteger($includeArray);
-		JArrayHelper::toInteger($excludeArray);
+		$includeArray = ArrayHelper::toInteger($includeArray);
+		$excludeArray = ArrayHelper::toInteger($excludeArray);
 
 		$subQuery->select('it.issue_id AS issue_id, it.tag_id AS tag_id')
 			->from('#__code_tracker_issue_tag_map AS it')
@@ -94,7 +82,10 @@ class TrackerstatsModelReleasenotes extends JModelList
 	 *
 	 * Note. Calling getState in this method will result in recursion.
 	 *
-	 * @since	1.6
+	 * @param   string  $ordering   An optional ordering field.
+	 * @param   string  $direction  An optional direction (asc|desc).
+	 *
+	 * @return  void
 	 */
 	protected function populateState($ordering = null, $direction = null)
 	{
@@ -103,7 +94,7 @@ class TrackerstatsModelReleasenotes extends JModelList
 		$jinput = $app->input;
 
 		$params     = $app->getParams();
-		$menuParams = new JRegistry;
+		$menuParams = new Registry;
 
 		if ($menu = $app->getMenu()->getActive())
 		{
@@ -113,13 +104,6 @@ class TrackerstatsModelReleasenotes extends JModelList
 		$mergedParams = clone $menuParams;
 		$mergedParams->merge($params);
 		$this->setState('params', $mergedParams);
-
-		$user = JFactory::getUser();
-
-		// Create a new query object.
-		$db     = $this->getDbo();
-		$query  = $db->getQuery(true);
-		$groups = implode(',', $user->getAuthorisedViewLevels());
 
 		// Optional filter text
 		$this->setState('list.filter', $jinput->getString('filter-search'));

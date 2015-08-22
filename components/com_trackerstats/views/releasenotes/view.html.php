@@ -22,7 +22,16 @@ class TrackerstatsViewReleasenotes extends JViewLegacy
 	protected $items;
 	protected $pagination;
 
-	function display($tpl = null)
+	/**
+	 * Execute and display a template script.
+	 *
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @see     JViewLegacy::loadTemplate()
+	 */
+	public function display($tpl = null)
 	{
 		$app    = JFactory::getApplication();
 		$params = $app->getParams();
@@ -60,7 +69,6 @@ class TrackerstatsViewReleasenotes extends JViewLegacy
 	{
 		$app     = JFactory::getApplication();
 		$menu    = $app->getMenu()->getActive();
-		$pathway = $app->getPathway();
 
 		if ($menu)
 		{

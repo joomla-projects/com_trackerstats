@@ -11,25 +11,13 @@ defined('_JEXEC') or die;
 
 /**
  * Get data for the open and closed issues bar chart.
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 class TrackerstatsModelOpenclose extends JModelList
 {
 	/**
-	 * Category items data
+	 * Get the issue counts
 	 *
-	 * @var array
-	 */
-	protected $items = null;
-
-	/**
-	 * Method to build an SQL query to load the list data.
-	 *
-	 * @return	string	An SQL query
-	 * @since	1.6
+	 * @return	array
 	 */
 	public function getIssueCounts()
 	{
@@ -39,8 +27,8 @@ class TrackerstatsModelOpenclose extends JModelList
 
 		$this->populateState();
 
-		$periodList  = array(1 => 7, 2 => 30, 3 => 90);
-		$periodNames = array(1 => 'Weeks', 2 => 'Months', 3 => 'Quarters');
+		$periodList  = [1 => 7, 2 => 30, 3 => 90];
+		$periodNames = [1 => 'Weeks', 2 => 'Months', 3 => 'Quarters'];
 		$periodName  = $periodNames[$this->state->get('list.period')];
 		$periodValue = $periodList[$this->state->get('list.period')];
 
@@ -69,7 +57,7 @@ class TrackerstatsModelOpenclose extends JModelList
 		}
 
 		$query->select('DATE(NOW()) AS end_date');
-		$query->from($db->qn('#__code_tracker_issues') . ' AS i');
+		$query->from($db->quoteName('#__code_tracker_issues') . ' AS i');
 		$query->where('date(i.close_date) > Date(DATE_ADD(now(), INTERVAL -' . ($periodValue * 4) . ' DAY))');
 		$query->where('i.state = 0');
 
@@ -91,13 +79,13 @@ class TrackerstatsModelOpenclose extends JModelList
 		}
 
 		$query->select('DATE(NOW()) AS end_date');
-		$query->from($db->qn('#__code_tracker_issues') . ' AS i');
+		$query->from($db->quoteName('#__code_tracker_issues') . ' AS i');
 		$query->where('date(i.created_date) > Date(DATE_ADD(now(), INTERVAL -' . ($periodValue * 4) . ' DAY))');
 
 		$db->setQuery($query, $this->state->get('list.start'), $this->state->get('list.limit'));
 		$openedIssues = $db->loadObject();
 
-		return array($openedIssues, $closedIssues);
+		return [$openedIssues, $closedIssues];
 	}
 
 	/**
@@ -105,13 +93,15 @@ class TrackerstatsModelOpenclose extends JModelList
 	 *
 	 * Note. Calling getState in this method will result in recursion.
 	 *
-	 * @since	1.6
+	 * @param   string  $ordering   An optional ordering field.
+	 * @param   string  $direction  An optional direction (asc|desc).
+	 *
+	 * @return  void
 	 */
 	protected function populateState($ordering = null, $direction = null)
 	{
 		// Initialise variables.
 		$jinput = JFactory::getApplication()->input;
-		$params	= JComponentHelper::getParams('com_trackerstats');
 		$this->setState('list.limit', 25);
 		$this->setState('list.start', 0);
 		$this->setState('list.period', $jinput->getInt('period', 1));

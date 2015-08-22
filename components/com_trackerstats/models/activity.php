@@ -11,25 +11,13 @@ defined('_JEXEC') or die;
 
 /**
  * Gets the data for the bug squad total activity by time period bar chart.
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 class TrackerstatsModelActivity extends JModelList
 {
 	/**
-	 * Category items data
+	 * Method to get a JDatabaseQuery object for retrieving the data set from a database.
 	 *
-	 * @var array
-	 */
-	protected $items = null;
-
-	/**
-	 * Method to build an SQL query to load the list data.
-	 *
-	 * @return	string	An SQL query
-	 * @since	1.6
+	 * @return  JDatabaseQuery   A JDatabaseQuery object to retrieve the data set.
 	 */
 	protected function getListQuery()
 	{
@@ -38,8 +26,8 @@ class TrackerstatsModelActivity extends JModelList
 		$query = $db->getQuery(true);
 		$query->select('t.activity_group');
 
-		$periodList  = array(1 => 7, 2 => 30, 3 => 90);
-		$periodNames = array(1 => 'Weeks', 2 => 'Months', 3 => 'Quarters');
+		$periodList  = [1 => 7, 2 => 30, 3 => 90];
+		$periodNames = [1 => 'Weeks', 2 => 'Months', 3 => 'Quarters'];
 		$periodName  = $periodNames[$this->state->get('list.period')];
 		$periodValue = $periodList[$this->state->get('list.period')];
 
@@ -58,18 +46,18 @@ class TrackerstatsModelActivity extends JModelList
 
 		$query->select('DATE(NOW()) AS end_date');
 
-		$typeList = array('All', 'Tracker', 'Test', 'Code');
+		$typeList = ['All', 'Tracker', 'Test', 'Code'];
 		$type     = $typeList[$this->state->get('list.activity_type')];
 
 		// Select required fields from the categories.
-		$query->from($db->qn('#__code_activity_detail') . ' AS a');
-		$query->join('INNER', $db->qn('#__code_activity_types') . ' AS t ON a.activity_type = t.activity_type');
+		$query->from($db->quoteName('#__code_activity_detail') . ' AS a');
+		$query->join('INNER', $db->quoteName('#__code_activity_types') . ' AS t ON a.activity_type = t.activity_type');
 		$query->where('date(a.activity_date) > Date(DATE_ADD(now(), INTERVAL -' . ($periodValue * 4) . ' DAY))');
 		$query->group('t.activity_group');
 
 		if ($this->state->get('list.activity_type') > 0)
 		{
-			$query->where('t.activity_group = ' . $db->q($type));
+			$query->where('t.activity_group = ' . $db->quote($type));
 		}
 
 		$query->order('t.activity_group DESC');
@@ -82,13 +70,16 @@ class TrackerstatsModelActivity extends JModelList
 	 *
 	 * Note. Calling getState in this method will result in recursion.
 	 *
-	 * @since	1.6
+	 * @param   string  $ordering   An optional ordering field.
+	 * @param   string  $direction  An optional direction (asc|desc).
+	 *
+	 * @return  void
 	 */
 	protected function populateState($ordering = null, $direction = null)
 	{
 		// Initialise variables.
 		$input  = JFactory::getApplication()->input;
-		$params = JComponentHelper::getParams('com_trackerstats');
+
 		$this->setState('list.limit', 25);
 		$this->setState('list.start', 0);
 		$this->setState('list.period', $input->getInt('period', 1));

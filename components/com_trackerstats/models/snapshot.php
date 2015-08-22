@@ -11,30 +11,18 @@ defined('_JEXEC') or die;
 
 /**
  * Gets the data for the total open issues by time period bar chart.
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 class TrackerstatsModelSnapshot extends JModelList
 {
 	/**
-	 * Category items data
+	 * Method to get a JDatabaseQuery object for retrieving the data set from a database.
 	 *
-	 * @var array
-	 */
-	protected $items = null;
-
-	/**
-	 * Method to get the data for the snapshots bar chart.
-	 *
-	 * @return	string	An SQL query
-	 * @since	1.6
+	 * @return  JDatabaseQuery   A JDatabaseQuery object to retrieve the data set.
 	 */
 	protected function getListQuery()
 	{
-		$periodList  = array(1 => 1, 2 => 7, 3 => 30);
-		$periodNames = array(1 => 'Days', 2 => 'Weeks', 3 => 'Months');
+		$periodList  = [1 => 1, 2 => 7, 3 => 30];
+		$periodNames = [1 => 'Days', 2 => 'Weeks', 3 => 'Months'];
 		$periodName  = $periodNames[$this->state->get('list.period')];
 		$periodValue = $periodList[$this->state->get('list.period')];
 
@@ -42,7 +30,7 @@ class TrackerstatsModelSnapshot extends JModelList
 		$today = $this->getLatestDate();
 
 		// Calculate the prior three dates
-		$priorDates   = array();
+		$priorDates   = [];
 		$db           = $this->getDbo();
 		$priorDates[] = $db->quote($today);
 
@@ -53,8 +41,11 @@ class TrackerstatsModelSnapshot extends JModelList
 			$priorDates[] = $db->quote($workDate->format('Y-m-d'));
 		}
 
-		$query = $db->getQuery(true);
-		$query->select('*')->from('#__code_tracker_snapshots')->where('tracker_id = 3')->where('snapshot_day IN (' . implode(',', $priorDates) . ')');
+		$query = $db->getQuery(true)
+			->select('*')
+			->from('#__code_tracker_snapshots')
+			->where('tracker_id = 3')
+			->where('snapshot_day IN (' . implode(',', $priorDates) . ')');
 
 		return $query;
 	}
@@ -64,13 +55,15 @@ class TrackerstatsModelSnapshot extends JModelList
 	 *
 	 * Note. Calling getState in this method will result in recursion.
 	 *
-	 * @since	1.6
+	 * @param   string  $ordering   An optional ordering field.
+	 * @param   string  $direction  An optional direction (asc|desc).
+	 *
+	 * @return  void
 	 */
 	protected function populateState($ordering = null, $direction = null)
 	{
 		// Initialise variables.
 		$jinput = JFactory::getApplication()->input;
-		$params	= JComponentHelper::getParams('com_trackerstats');
 		$this->setState('list.limit', 25);
 		$this->setState('list.start', 0);
 		$this->setState('list.period', $jinput->getInt('period', 1));
@@ -83,8 +76,8 @@ class TrackerstatsModelSnapshot extends JModelList
 	protected function getLatestDate()
 	{
 		$db	= $this->getDbo();
-		$query = $db->getQuery(true);
-		$query->select('MAX(snapshot_day)')
+		$query = $db->getQuery(true)
+			->select('MAX(snapshot_day)')
 			->from('#__code_tracker_snapshots')
 			->where('tracker_id = 3');
 		$db->setQuery($query);

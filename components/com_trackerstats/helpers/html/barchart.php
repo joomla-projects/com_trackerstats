@@ -3,7 +3,7 @@
  * @package     Joomla.BugSquad
  * @subpackage  com_trackerstats
  *
- * @copyright   Copyright (C) 2005 - 2013 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2015 Open Source Matters, Inc. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
@@ -11,18 +11,16 @@ defined('JPATH_PLATFORM') or die;
 
 /**
  * HTML utility class for creating bar charts using jQuery and jqplot JavaScript libraries.
- *
- * @package     Joomla.BugSquad
- * @subpackage  com_trackerstats
- * @since       2.5
  */
 abstract class JHtmlBarchart
 {
 	/**
-	 * @var    array  Array containing information for loaded files
+	 * Array containing information for loaded files
+	 *
+	 * @var    array
 	 * @since  3.0
 	 */
-	protected static $loaded = array();
+	protected static $loaded = [];
 
 	/**
 	 * Method to load the Barchart script to display a bar chart using jQuery and jqPlot
@@ -31,8 +29,6 @@ abstract class JHtmlBarchart
 	 * @param   string  $urlId        DOM id of the element whose href attribute has the URL to the JSON data
 	 *
 	 * @return  void
-	 *
-	 * @since   2.5
 	 */
 	public static function barchart($containerId, $urlId, $horizontal = true, $stackSeries = true, $barMargin = 10)
 	{
@@ -58,7 +54,7 @@ abstract class JHtmlBarchart
 		$document->addStyleSheet(JUri::root(true) . '/components/com_trackerstats/media/css/jquery-ui-1.10.2.custom.min.css');
 
 		// Attach sortable to document
-		JFactory::getDocument()->addScriptDeclaration("
+		$document->addScriptDeclaration("
 			(function ($){
 				$(document).ready(function (){
 					var barchart = new $.JQPLOTBarchart('" . $containerId . "','" . $urlId . "','" . $orientation . "','" . $stackSeries . "','" . $barMargin . "');
@@ -66,7 +62,7 @@ abstract class JHtmlBarchart
 			})(jQuery);
 			"
 		);
-		JFactory::getDocument()->addScriptDeclaration("
+		$document->addScriptDeclaration("
 			(function ($){
 				$(document).ready(function (){
     			$('#dataUpdate').click(function() {
@@ -90,7 +86,7 @@ abstract class JHtmlBarchart
 			})(jQuery);
 			"
 		);
-		JFactory::getDocument()->addScriptDeclaration("
+		$document->addScriptDeclaration("
 		/*
 		 * jQuery UI Datepicker: Parse and Format Dates
 		 * http://salman-w.blogspot.com/2013/01/jquery-ui-datepicker-examples.html
@@ -140,7 +136,7 @@ abstract class JHtmlBarchart
 		$document->addStyleSheet(JUri::root(true) . '/components/com_trackerstats/media/css/jquery.jqplot.min.css');
 
 		// Attach sortable to document
-		JFactory::getDocument()->addScriptDeclaration("
+		$document->addScriptDeclaration("
 				(function ($){
 				$(document).ready(function (){
 				var barchart = new $.JQPLOTBarchartTest('" . $containerId . "','" . $urlId . "','" . $orientation . "','" . $stackSeries . "','" . $barMargin . "');
@@ -148,7 +144,7 @@ abstract class JHtmlBarchart
 	})(jQuery);
 				"
 		);
-		JFactory::getDocument()->addScriptDeclaration("
+		$document->addScriptDeclaration("
 				(function ($){
 				$(document).ready(function (){
 				$('button.dataUpdate').click(function() {
