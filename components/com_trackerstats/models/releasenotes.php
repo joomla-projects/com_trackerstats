@@ -47,35 +47,44 @@ class TrackerstatsModelReleasenotes extends JModelList
 		JArrayHelper::toInteger($includeArray);
 		JArrayHelper::toInteger($excludeArray);
 
-		$subQuery->select('issue_id, tag_id, tag')
-			->from('#__code_tracker_issue_tag_map')
-			->where('tag_id IN (39,1,29,44,36,85,11,40,17,82,13,6,35,22,27,21,23,20,49,34,19,25,43,94,88,125,112,114)')
-			->group('issue_id, tag_id, tag');
+		$subQuery->select('it.issue_id AS issue_id, it.tag_id AS tag_id')
+			->from('#__code_tracker_issue_tag_map AS it')
+			->where('it.tag_id IN (6,10,16,20,24,26,28,51,52,55,62,65,67,74,75,78,79,82,83,87,92,93,105,107,112,115)')
+			->group('it.issue_id, it.tag_id');
+
+		// Join the tags table to get the tag name
+		$subQuery->select('t.tag AS tag')
+			->join('LEFT', '#__code_tags AS t ON it.tag_id = t.tag_id');
 
 		// Select required fields from the categories.
-		$query->select("CASE WHEN ISNULL(m.tag) THEN 'None' ELSE m.tag END as category");
+		$query->select('CASE WHEN ISNULL(m.tag) THEN ' . $db->quote('None') . ' ELSE m.tag END as category');
 		$query->select('i.title, i.jc_issue_id, i.close_date');
 
-		$query->from($db->qn('#__code_tracker_issues') . ' AS i');
+		$query->from('#__code_tracker_issues AS i');
 		$query->join('LEFT', '(' . (string) $subQuery . ') AS m ON i.issue_id = m.issue_id');
 
 		$query->where(
-			'((DATE(close_date) BETWEEN ' . $db->q(substr($this->state->params->get('start_date'), 0, 10))
-			. ' AND ' . $db->q(substr($this->state->params->get('end_date'), 0, 10)) . ') OR (i.jc_issue_id IN (' . implode(',', $includeArray) . ')))'
+			'((DATE(close_date) BETWEEN ' . $db->quote(substr($this->state->params->get('start_date'), 0, 10))
+			. ' AND ' . $db->quote(substr($this->state->params->get('end_date'), 0, 10)) . ')'
+			. ' OR (i.jc_issue_id IN (' . implode(',', $includeArray) . ')))'
 		);
 
-		// Filter on merged items from the issue and feature trackers
-		$query->where('(' . $db->qn('status_name') . ' LIKE ' . $db->q('%Fixed in SVN%') . ' OR ' . $db->qn('status_name') . ' LIKE ' . $db->q('%Implemented in trunk%') . ')');
+		// Join the status table to get the status name
+		$query->select('s.title AS status_name');
+		$query->join('LEFT', '#__code_tracker_status AS s ON i.status = s.jc_status_id');
+
+		// Filter on merged items from the trackers
+		$query->where('(s.title LIKE ' . $db->quote('%Fixed in SVN%') . ' OR s.title LIKE ' . $db->quote('%Implemented in trunk%') . ')');
 
 		// Exclude explicitly listed trackers
 		$query->where('i.jc_issue_id NOT IN (' . implode(',', $excludeArray) . ')');
 
 		if ($this->state->get('list.filter'))
 		{
-			$query->where('i.title LIKE ' . $db->q('%' . $this->state->get('list.filter') . '%'));
+			$query->where('i.title LIKE ' . $db->quote('%' . $this->state->get('list.filter') . '%'));
 		}
 
-		$query->order("CASE WHEN ISNULL(m.tag) THEN 'None' ELSE m.tag END ASC");
+		$query->order('CASE WHEN ISNULL(m.tag) THEN ' . $db->quote('None') . ' ELSE m.tag END ASC');
 
 		return $query;
 	}
