@@ -10,6 +10,7 @@
 /build
 /cache
 /cgi-bin
+/cli
 /cms-coverage
 /cms-packages
 /images
@@ -21,7 +22,6 @@
 /logs
 /manual
 /media
-/modules
 /plugins
 /pulls
 /standards
