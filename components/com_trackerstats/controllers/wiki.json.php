@@ -24,20 +24,30 @@ class TrackerstatsControllerWiki extends JControllerLegacy
 	 */
 	public function display($cachable = false, $urlparams = [])
 	{
+		JFactory::getApplication()->mimeType = 'application/json';
+
+		$label        = new stdClass;
+		$label->label = 'Wiki Edits';
+
 		// JSON URL which should be requested
 		$json_url = 'https://docs.joomla.org/api.php?action=query&list=allusers&format=json&auexcludegroup=bot&aulimit=100&auprop=editcount&auactiveusers=';
-		$ch       = curl_init($json_url);
-		$options  = array(
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_HTTPHEADER     => ['Content-type: application/json'],
-			CURLOPT_POSTFIELDS     => ''
-		);
 
-		// Setting curl options
-		curl_setopt_array($ch, $options);
+		$http = JHttpFactory::getHttp();
+
+		try
+		{
+			$response = $http->get($json_url, ['Content-type: application/json']);
+		}
+		catch (Exception $e)
+		{
+			// Error handling?
+			echo json_encode([[[]], [], [$label], 'Wiki Edits by Contributor in Past 30 Days']);
+
+			return $this;
+		}
 
 		// Getting results
-		$users = json_decode(curl_exec($ch)); // Getting jSON result string
+		$users = json_decode($response->body);
 
 		// Convert to array for processing
 		$workArray       = [];
@@ -78,11 +88,6 @@ class TrackerstatsControllerWiki extends JControllerLegacy
 				$people[] = $k . ' (' . $totalEditsArray[$k] . ' total edits)';
 			}
 		}
-
-		$label        = new stdClass;
-		$label->label = 'Wiki Edits';
-
-		JFactory::getApplication()->mimeType = 'application/json';
 
 		// Send the response.
 		echo json_encode([[$edits], $people, [$label], 'Wiki Edits by Contributor in Past 30 Days']);

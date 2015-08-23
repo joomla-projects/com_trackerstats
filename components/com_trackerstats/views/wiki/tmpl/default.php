@@ -8,6 +8,10 @@
  */
 
 defined('_JEXEC') or die;
+
+JHtml::addIncludePath(JPATH_COMPONENT . '/helpers/html');
+
+JHtml::_('barchart.barchart', 'barchart', 'barchart', true);
 ?>
 <div class="trackerstats-wiki<?php echo $this->pageclass_sfx;?>">
 	<?php if ($this->params->def('show_page_heading', 1)) : ?>
@@ -16,5 +20,5 @@ defined('_JEXEC') or die;
 	</h1>
 	<?php endif; ?>
 
-	<?php echo $this->loadTemplate('charts'); ?>
+	<div id="barchart" style="width:700px; height:600px;" data-href="<?php echo JRoute::_('index.php?option=com_trackerstats&task=wiki.display&format=json'); ?>"></div>
 </div>

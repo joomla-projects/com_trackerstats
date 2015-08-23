@@ -35,14 +35,11 @@ class TrackerstatsModelReleasenotes extends JModelList
 		$includeArray = ArrayHelper::toInteger($includeArray);
 		$excludeArray = ArrayHelper::toInteger($excludeArray);
 
-		$subQuery->select('it.issue_id AS issue_id, it.tag_id AS tag_id')
+		$subQuery->select('it.issue_id AS issue_id, it.tag_id AS tag_id, t.tag AS tag')
+			->join('LEFT', '#__code_tags AS t ON t.tag_id = it.tag_id')
 			->from('#__code_tracker_issue_tag_map AS it')
 			->where('it.tag_id IN (6,10,16,20,24,26,28,51,52,55,62,65,67,74,75,78,79,82,83,87,92,93,105,107,112,115)')
-			->group('it.issue_id, it.tag_id');
-
-		// Join the tags table to get the tag name
-		$subQuery->select('t.tag AS tag')
-			->join('LEFT', '#__code_tags AS t ON it.tag_id = t.tag_id');
+			->group('it.issue_id, it.tag_id, t.tag');
 
 		// Select required fields from the categories.
 		$query->select('CASE WHEN ISNULL(m.tag) THEN ' . $db->quote('None') . ' ELSE m.tag END as category');
@@ -73,6 +70,7 @@ class TrackerstatsModelReleasenotes extends JModelList
 		}
 
 		$query->order('CASE WHEN ISNULL(m.tag) THEN ' . $db->quote('None') . ' ELSE m.tag END ASC');
+		$query->order('i.jc_issue_id ASC');
 
 		return $query;
 	}
@@ -108,9 +106,10 @@ class TrackerstatsModelReleasenotes extends JModelList
 		// Optional filter text
 		$this->setState('list.filter', $jinput->getString('filter-search'));
 
-		// filter.order
-		$limit = $app->getUserStateFromRequest('com_trackerstats.releasenotes.limit', 'limit', $params->get('display_num', 20), 'uint');
-		$this->setState('list.limit', $limit);
-		$this->setState('list.start', $jinput->getUInt('limitstart', 0));
+		$value = $app->input->get('limit', $app->get('list_limit', 0), 'uint');
+		$this->setState('list.limit', $value);
+
+		$value = $app->input->get('limitstart', 0, 'uint');
+		$this->setState('list.start', $value);
 	}
 }
