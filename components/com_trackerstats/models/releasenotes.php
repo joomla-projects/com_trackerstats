@@ -46,7 +46,7 @@ class TrackerstatsModelReleasenotes extends JModelList
 		$query->select('i.title, i.jc_issue_id, i.close_date');
 
 		$query->from('#__code_tracker_issues AS i');
-		$query->join('LEFT', '(' . (string) $subQuery . ') AS m ON i.issue_id = m.issue_id');
+		$query->join('LEFT', '(' . (string) $subQuery . ') AS m ON i.jc_issue_id = m.issue_id');
 
 		$query->where(
 			'((DATE(close_date) BETWEEN ' . $db->quote(substr($this->state->params->get('start_date'), 0, 10))
