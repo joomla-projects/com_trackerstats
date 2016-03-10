@@ -11,9 +11,9 @@ defined('_JEXEC') or die;
 ?>
 <div class="trackerstats-releasenotes<?php echo $this->pageclass_sfx;?>">
 	<?php if ($this->params->get('show_page_heading')) : ?>
-	<h1>
-		<?php echo $this->escape($this->params->get('page_heading')); ?>
-	</h1>
+		<div class="page-header">
+			<h1><?php echo $this->escape($this->params->get('page_heading')); ?></h1>
+		</div>
 	<?php endif; ?>
 
 	<div class="cat-items">
