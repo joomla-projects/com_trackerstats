@@ -9,6 +9,9 @@
 
 defined('_JEXEC') or die;
 
+// Load the com_code route helper
+JLoader::register('CodeHelperRoute', JPATH_ROOT . '/components/com_code/helpers/route.php');
+
 /**
  * HTML View class for the release notes menu item.
  *

@@ -63,7 +63,7 @@ defined('_JEXEC') or die;
 							<?php echo $note->category;?>
 						</td>
 						<td>
-							<a href="<?php echo JRoute::_('index.php?option=com_code&view=issue&issue_id=' . $note->jc_issue_id); ?>">
+							<a href="<?php echo JRoute::_(CodeHelperRoute::getIssueRoute($note->jc_issue_id)); ?>">
 								<?php echo $this->escape($note->jc_issue_id); ?>
 							</a>
 						</td>
