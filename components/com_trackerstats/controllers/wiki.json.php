@@ -26,22 +26,21 @@ class TrackerstatsControllerWiki extends JControllerLegacy
 	{
 		JFactory::getApplication()->mimeType = 'application/json';
 
-		$label        = new stdClass;
-		$label->label = 'Wiki Edits';
-
-		// JSON URL which should be requested
-		$json_url = 'https://docs.joomla.org/api.php?action=query&list=allusers&format=json&auexcludegroup=bot&aulimit=100&auprop=editcount&auactiveusers=';
-
-		$http = JHttpFactory::getHttp();
+		$label = (object) [
+			'label' => JText::_('COM_TRACKERSTATS_WIKI_LABEL_EDITS')
+		];
 
 		try
 		{
-			$response = $http->get($json_url, ['Content-type: application/json']);
+			$response = JHttpFactory::getHttp()->get(
+				'https://docs.joomla.org/api.php?action=query&list=allusers&format=json&auexcludegroup=bot&aulimit=100&auprop=editcount&auactiveusers=',
+				['Content-type: application/json']
+			);
 		}
 		catch (Exception $e)
 		{
 			// Error handling?
-			echo json_encode([[[]], [], [$label], 'Wiki Edits by Contributor in Past 30 Days']);
+			echo json_encode([[[]], [], [$label], JText::_('COM_TRACKERSTATS_WIKI_LABEL_EDITS_BY_CONTRIBUTOR_IN_PAST_30_DAYS')]);
 
 			return $this;
 		}
@@ -85,12 +84,12 @@ class TrackerstatsControllerWiki extends JControllerLegacy
 			if ($v > 0 && $i++ < $maxCount)
 			{
 				$edits[]  = $v;
-				$people[] = $k . ' (' . $totalEditsArray[$k] . ' total edits)';
+				$people[] = JText::sprintf('COM_TRACKERSTATS_WIKI_CHART_PERSON_LABEL', $k, $totalEditsArray[$k]);
 			}
 		}
 
 		// Send the response.
-		echo json_encode([[$edits], $people, [$label], 'Wiki Edits by Contributor in Past 30 Days']);
+		echo json_encode([[$edits], $people, [$label], JText::_('COM_TRACKERSTATS_WIKI_LABEL_EDITS_BY_CONTRIBUTOR_IN_PAST_30_DAYS')]);
 
 		return $this;
 	}
